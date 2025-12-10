@@ -8,15 +8,15 @@ import "./style.css";
 import "vfonts/Lato.css";
 import "vfonts/FiraCode.css";
 
+// Import locale messages
+import { messages } from "./locales";
+
 // I18n Setup
 const i18n = createI18n({
   legacy: false, // Vue 3 Composition API
   locale: "zh-CN",
   fallbackLocale: "en-US",
-  messages: {
-    "en-US": { message: { hello: "Hello" } },
-    "zh-CN": { message: { hello: "你好" } },
-  },
+  messages,
 });
 
 const pinia = createPinia();

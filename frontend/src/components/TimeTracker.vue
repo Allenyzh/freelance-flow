@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { NInput, NSelect, NButton, NIcon, NSpace, NText, useMessage } from 'naive-ui'
 import { PlayCircleOutlined, PauseCircleOutlined, CloseCircleOutlined } from '@vicons/antd'
+import { useI18n } from 'vue-i18n'
 import type { Project } from '@/types'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const message = useMessage()
+const { t } = useI18n()
 
 // Timer State
 const isRunning = ref(false)
@@ -91,7 +93,7 @@ function stopInterval() {
 // Actions
 function handleStart() {
     if (!projectId.value) {
-        message.warning('Please select a project first')
+        message.warning(t('timesheet.timer.selectProjectFirst'))
         return
     }
 
@@ -121,7 +123,7 @@ function handleStop() {
     projectId.value = null
     saveToStorage()
 
-    message.success('Time logged successfully!')
+    message.success(t('timesheet.timer.loggedMsg'))
 }
 
 function handleDiscard() {
@@ -132,7 +134,7 @@ function handleDiscard() {
     description.value = ''
     projectId.value = null
     saveToStorage()
-    message.info('Timer discarded')
+    message.info(t('timesheet.timer.discardedMsg'))
 }
 
 // Lifecycle
@@ -156,12 +158,13 @@ watch([description, projectId], () => {
     <div class="time-tracker" :class="{ 'is-running': isRunning }">
         <div class="tracker-content">
             <!-- Description Input -->
-            <n-input v-model:value="description" placeholder="What are you working on?" class="description-input"
-                :disabled="isRunning && elapsedSeconds > 0" />
+            <n-input v-model:value="description" :placeholder="t('timesheet.timer.placeholder')"
+                class="description-input" :disabled="isRunning && elapsedSeconds > 0" />
 
             <!-- Project Selector -->
-            <n-select v-model:value="projectId" :options="projectOptions" placeholder="Select project"
-                class="project-select" :disabled="isRunning && elapsedSeconds > 0" filterable />
+            <n-select v-model:value="projectId" :options="projectOptions"
+                :placeholder="t('timesheet.timer.selectProject')" class="project-select"
+                :disabled="isRunning && elapsedSeconds > 0" filterable />
 
             <!-- Timer Display -->
             <div class="timer-display" :class="{ 'running': isRunning }">
@@ -187,7 +190,8 @@ watch([description, projectId], () => {
                         </template>
                     </n-button>
 
-                    <n-button quaternary circle size="small" @click="handleDiscard" title="Discard timer">
+                    <n-button quaternary circle size="small" @click="handleDiscard"
+                        :title="t('timesheet.timer.discard')">
                         <template #icon>
                             <n-icon>
                                 <CloseCircleOutlined />
@@ -274,4 +278,3 @@ watch([description, projectId], () => {
     }
 }
 </style>
-</template>
