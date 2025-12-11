@@ -48,7 +48,7 @@ func TestFetchLatestRelease(t *testing.T) {
 		if r.URL.Path == "/repos/owner/repo/releases/latest" {
 			// Update the download URL to point to this server
 			mockResponse.Assets[1].BrowserDownloadUrl = fmt.Sprintf("http://%s/update.json", r.Host)
-			json.NewEncoder(w).Encode(mockResponse)
+			_ = json.NewEncoder(w).Encode(mockResponse)
 			return
 		}
 		if r.URL.Path == "/update.json" {
@@ -60,7 +60,7 @@ func TestFetchLatestRelease(t *testing.T) {
 					"darwin-amd64": {URL: "https://dl/dmg", Size: 2048},
 				},
 			}
-			json.NewEncoder(w).Encode(info)
+			_ = json.NewEncoder(w).Encode(info)
 			return
 		}
 

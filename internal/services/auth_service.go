@@ -88,7 +88,7 @@ func (s *AuthService) Register(input dto.RegisterInput) (dto.UserOutput, error) 
 		log.Println("Error preparing insert:", err)
 		return dto.UserOutput{}, err
 	}
-	defer stmt.Close()
+	defer stmt.Close() //nolint:errcheck
 
 	now := time.Now()
 	res, err := stmt.Exec(userUUID, input.Username, passwordHash, input.Email, input.AvatarURL, settingsJSON, now.Format(time.RFC3339), now.Format(time.RFC3339))
@@ -164,7 +164,7 @@ func (s *AuthService) GetAllUsers() []dto.UserListItem {
 		log.Println("Error querying users:", err)
 		return []dto.UserListItem{}
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var users []models.User
 	for rows.Next() {

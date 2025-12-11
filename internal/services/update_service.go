@@ -23,7 +23,7 @@ type UpdateService struct {
 	ctx            context.Context
 	state          update.UpdateState
 	mu             sync.RWMutex
-	checkInterval  int // hours, unused for now
+	_              int // hours, unused for now (checkInterval)
 	downloader     *update.Downloader
 	cancelDownload context.CancelFunc
 }
@@ -43,7 +43,9 @@ func NewUpdateService() *UpdateService {
 func (s *UpdateService) startup(ctx context.Context) {
 	s.ctx = ctx
 	// Auto-check on startup
-	go s.CheckForUpdate()
+	go func() {
+		_ = s.CheckForUpdate()
+	}()
 }
 
 // CheckForUpdate checks for the latest version on GitHub.

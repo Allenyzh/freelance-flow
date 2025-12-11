@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"freelance-flow/internal/dto"
 	"freelance-flow/internal/mapper"
 	"freelance-flow/internal/models"
@@ -26,7 +27,7 @@ func (s *InvoiceService) List(userID int) []dto.InvoiceOutput {
 		log.Println("Error querying invoices:", err)
 		return []dto.InvoiceOutput{}
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var invoices []models.Invoice
 	for rows.Next() {
@@ -38,7 +39,10 @@ func (s *InvoiceService) List(userID int) []dto.InvoiceOutput {
 			continue
 		}
 		if itemsJSON != "" {
-			json.Unmarshal([]byte(itemsJSON), &i.Items)
+			if err := json.Unmarshal([]byte(itemsJSON), &i.Items); err != nil {
+				log.Printf("Error unmarshalling items for invoice %d: %v", i.ID, err)
+				i.Items = []models.InvoiceItem{}
+			}
 		} else {
 			i.Items = []models.InvoiceItem{}
 		}
@@ -57,7 +61,10 @@ func (s *InvoiceService) Get(userID int, id int) (dto.InvoiceOutput, error) {
 		return dto.InvoiceOutput{}, err
 	}
 	if itemsJSON != "" {
-		json.Unmarshal([]byte(itemsJSON), &i.Items)
+		if err := json.Unmarshal([]byte(itemsJSON), &i.Items); err != nil {
+			log.Printf("Error unmarshalling items for invoice %d: %v", i.ID, err)
+			return dto.InvoiceOutput{}, fmt.Errorf("failed to unmarshal items: %w", err)
+		}
 	} else {
 		i.Items = []models.InvoiceItem{}
 	}

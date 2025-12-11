@@ -25,7 +25,7 @@ func (s *ClientService) List(userID int) []dto.ClientOutput {
 		log.Println("Error querying clients:", err)
 		return []dto.ClientOutput{}
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var clients []models.Client
 	for rows.Next() {

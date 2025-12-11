@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { NButton, NIcon, NSpin } from 'naive-ui'
 import { RocketOutlined } from '@vicons/antd'
@@ -11,25 +11,92 @@ const authStore = useAuthStore()
 const { t } = useI18n()
 
 const isBackendReady = ref(false)
-const showStartButton = ref(false)
+
+// Typewriter effect state
+const taglines = [
+  'Empower your freelance journey.',
+  '掌控自由职业，从这里开始。',
+  'Track time. Manage clients. Invoice smart.',
+  '时间追踪、客户管理、智能开票。',
+  'Your work. Your rules.',
+  '你的工作，你的规则。',
+]
+
+const currentTaglineIndex = ref(0)
+const displayedText = ref('')
+const isTyping = ref(true)
+let typewriterInterval: ReturnType<typeof setInterval> | null = null
+let pauseTimeout: ReturnType<typeof setTimeout> | null = null
+
+const currentFullText = computed(() => taglines[currentTaglineIndex.value])
+
+function startTypewriter() {
+  let charIndex = 0
+  isTyping.value = true
+  displayedText.value = ''
+
+  const fullText = currentFullText.value ?? ''
+
+  typewriterInterval = setInterval(() => {
+    if (charIndex < fullText.length) {
+      displayedText.value += fullText[charIndex]
+      charIndex++
+    } else {
+      // Finished typing this line
+      if (typewriterInterval) clearInterval(typewriterInterval)
+      typewriterInterval = null
+      isTyping.value = false
+
+      // Pause then start erasing
+      pauseTimeout = setTimeout(() => {
+        startEraser()
+      }, 2500)
+    }
+  }, 80)
+}
+
+function startEraser() {
+  isTyping.value = true
+
+  typewriterInterval = setInterval(() => {
+    if (displayedText.value.length > 0) {
+      displayedText.value = displayedText.value.slice(0, -1)
+    } else {
+      // Finished erasing
+      if (typewriterInterval) clearInterval(typewriterInterval)
+      typewriterInterval = null
+      isTyping.value = false
+
+      // Move to next tagline
+      currentTaglineIndex.value = (currentTaglineIndex.value + 1) % taglines.length
+
+      // Small pause then start typing next
+      pauseTimeout = setTimeout(() => {
+        startTypewriter()
+      }, 500)
+    }
+  }, 40)
+}
 
 onMounted(async () => {
+  // Start typewriter effect
+  startTypewriter()
+
   // Initialize auth and check for existing session
   await authStore.initialize()
-  
+
   // Backend is ready
   isBackendReady.value = true
-  
+
   // If user is already authenticated, auto-redirect to dashboard
   if (authStore.isAuthenticated) {
     router.replace('/dashboard')
-    return
   }
-  
-  // If not authenticated, show start button with a slight delay for animation
-  setTimeout(() => {
-    showStartButton.value = true
-  }, 500)
+})
+
+onUnmounted(() => {
+  if (typewriterInterval) clearInterval(typewriterInterval)
+  if (pauseTimeout) clearTimeout(pauseTimeout)
 })
 
 function handleStart() {
@@ -47,42 +114,36 @@ function handleStart() {
   <div class="splash-container">
     <!-- Background Image with Ken Burns effect -->
     <div class="splash-background" />
-    
+
     <!-- Overlay for better text contrast -->
     <div class="splash-overlay" />
-    
+
     <!-- Content -->
     <div class="splash-content">
       <!-- Logo / Brand -->
       <div class="brand-section">
         <h1 class="brand-title">FreelanceFlow</h1>
-        <p class="brand-tagline">{{ t('splash.tagline') }}</p>
+        <p class="brand-tagline">
+          <span class="typewriter-text">{{ displayedText }}</span>
+          <span class="cursor" :class="{ typing: isTyping }">|</span>
+        </p>
       </div>
-      
-      <!-- Loading / Start Button -->
+
+      <!-- Action Button (always present, content changes) -->
       <div class="action-section">
-        <Transition name="fade">
-          <div v-if="!isBackendReady" class="loading-state">
-            <n-spin size="large" />
-            <p class="loading-text">{{ t('splash.initializing') }}</p>
-          </div>
-          <div v-else-if="showStartButton" class="start-state">
-            <n-button 
-              type="primary" 
-              size="large" 
-              round
-              class="start-button"
-              @click="handleStart"
-            >
-              <template #icon>
-                <n-icon><RocketOutlined /></n-icon>
-              </template>
-              {{ t('splash.start') }}
-            </n-button>
-          </div>
-        </Transition>
+        <n-button type="primary" size="large" round class="start-button" :disabled="!isBackendReady"
+          @click="handleStart">
+          <template #icon>
+            <n-spin v-if="!isBackendReady" :size="18" :stroke-width="3" />
+            <n-icon v-else>
+              <RocketOutlined />
+            </n-icon>
+          </template>
+          <span v-if="!isBackendReady">{{ t('splash.initializing') }}</span>
+          <span v-else>{{ t('splash.start') }}</span>
+        </n-button>
       </div>
-      
+
       <!-- Version / Footer -->
       <div class="splash-footer">
         <span>v1.0.0</span>
@@ -117,6 +178,7 @@ function handleStart() {
   0% {
     transform: scale(1);
   }
+
   100% {
     transform: scale(1.1);
   }
@@ -128,12 +190,10 @@ function handleStart() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0.3) 50%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(0, 0, 0, 0.6) 0%,
+      rgba(0, 0, 0, 0.3) 50%,
+      rgba(0, 0, 0, 0.6) 100%);
 }
 
 .splash-content {
@@ -167,7 +227,35 @@ function handleStart() {
   font-size: 1.25rem;
   opacity: 0.9;
   margin: 0;
+  min-height: 1.6em;
   animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.typewriter-text {
+  display: inline;
+}
+
+.cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+.cursor.typing {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .action-section {
@@ -177,32 +265,24 @@ function handleStart() {
   justify-content: center;
 }
 
-.loading-state,
-.start-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.loading-text {
-  font-size: 1rem;
-  opacity: 0.8;
-  margin: 0;
-}
-
 .start-button {
   padding: 0 48px;
   height: 52px;
   font-size: 1.1rem;
   font-weight: 600;
+  min-width: 200px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
-.start-button:hover {
+.start-button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.start-button:disabled {
+  opacity: 0.9;
+  cursor: wait;
 }
 
 .splash-footer {
@@ -215,22 +295,12 @@ function handleStart() {
   opacity: 0.6;
 }
 
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

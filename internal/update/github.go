@@ -36,7 +36,9 @@ func FetchLatestRelease(owner, repo string) (*UpdateInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch release: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("github api returned status: %d", resp.StatusCode)
@@ -85,7 +87,9 @@ func fetchUpdateJSON(url string) (*UpdateInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch update.json: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("update.json download failed status: %d", resp.StatusCode)

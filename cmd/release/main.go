@@ -1,3 +1,4 @@
+// Package main provides a tool for automating the release process.
 package main
 
 import (
@@ -70,7 +71,7 @@ func main() {
 		fmt.Sprintf(`"version": "%s"`, newVer),
 		1)
 
-	if err := os.WriteFile("wails.json", []byte(newContent), 0644); err != nil {
+	if err := os.WriteFile("wails.json", []byte(newContent), 0600); err != nil {
 		panic(err)
 	}
 

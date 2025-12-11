@@ -62,3 +62,20 @@ The executable will be generated in the `build/bin` directory.
 - `internal/`: Go backend logic (Services, Models, DB).
 - `main.go`: Application entry point and configuration.
 - `wails.json`: Wails project configuration.
+
+## 💻 Development Setup
+
+### Pre-commit Hooks (Recommended)
+
+Install pre-commit to automatically check code quality before committing:
+
+```bash
+# Install pre-commit (macOS)
+brew install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run checks manually
+pre-commit run --all-files
+```

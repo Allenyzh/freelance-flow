@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.62.2
+    hooks:
+      - id: golangci-lint
+        args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: Frontend Lint (oxlint + typecheck)
+        entry: bash -c 'cd frontend && bun run lint && bun run typecheck'
+        language: system
+        files: ^frontend/.*\.(ts|vue)$
+        pass_filenames: false

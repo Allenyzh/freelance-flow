@@ -17,7 +17,7 @@ func Init() *sql.DB {
 	}
 
 	appDataDir := filepath.Join(homeDir, ".freelance-flow")
-	if err := os.MkdirAll(appDataDir, 0755); err != nil {
+	if err := os.MkdirAll(appDataDir, 0750); err != nil {
 		log.Fatal("Failed to create app data directory:", err)
 	}
 

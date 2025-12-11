@@ -87,11 +87,14 @@ func main() {
 		Platforms:       platforms,
 	}
 
-	file, err := os.Create(output)
+	// G304: Risk accepted for CLI tool input. G306: Use 0600.
+	file, err := os.OpenFile(filepath.Clean(output), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -103,11 +106,13 @@ func main() {
 }
 
 func calculateSHA256(path string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {

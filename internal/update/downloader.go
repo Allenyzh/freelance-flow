@@ -35,17 +35,27 @@ func (d *Downloader) Download(ctx context.Context, url string, destPath string, 
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close() //nolint:errcheck // Close body before returning error
 		return fmt.Errorf("bad status: %s", resp.Status)
 	}
 
-	out, err := os.Create(destPath)
+	// G304: Potential file inclusion via variable checked elsewhere or accepted risk for internal app
+	// G306: Expect WriteFile permissions to be 0600 or less
+	out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
+		_ = resp.Body.Close() //nolint:errcheck
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer out.Close()
+	defer func() {
+		if closeErr := out.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close file: %w", closeErr)
+		}
+	}()
 
 	total := resp.ContentLength
 	counter := &progressWriter{
@@ -72,7 +82,9 @@ func (d *Downloader) VerifyHash(path string, expectedHash string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file for verification: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, f); err != nil {

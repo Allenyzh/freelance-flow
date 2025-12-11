@@ -16,7 +16,7 @@ func TestDownload(t *testing.T) {
 	content := "Hello, World! This is a test file for downloading."
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
-		fmt.Fprint(w, content)
+		_, _ = fmt.Fprint(w, content)
 	}))
 	defer server.Close()
 
@@ -54,7 +54,7 @@ func TestVerifyHash(t *testing.T) {
 	content := "Hash test content"
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "hash_test.txt")
-	err := os.WriteFile(filePath, []byte(content), 0644)
+	err := os.WriteFile(filePath, []byte(content), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
