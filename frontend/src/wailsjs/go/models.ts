@@ -518,3 +518,105 @@ export namespace dto {
 
 }
 
+export namespace update {
+	
+	export class Platform {
+	    url: string;
+	    signature: string;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Platform(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.signature = source["signature"];
+	        this.size = source["size"];
+	    }
+	}
+	export class UpdateInfo {
+	    version: string;
+	    // Go type: time
+	    releaseDate: any;
+	    releaseNotes: string;
+	    releaseNotesUrl?: string;
+	    mandatory: boolean;
+	    platforms: Record<string, Platform>;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.releaseDate = this.convertValues(source["releaseDate"], null);
+	        this.releaseNotes = source["releaseNotes"];
+	        this.releaseNotesUrl = source["releaseNotesUrl"];
+	        this.mandatory = source["mandatory"];
+	        this.platforms = this.convertValues(source["platforms"], Platform, true);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class UpdateState {
+	    status: string;
+	    currentVersion: string;
+	    latestVersion?: string;
+	    updateInfo?: UpdateInfo;
+	    downloadProgress?: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.status = source["status"];
+	        this.currentVersion = source["currentVersion"];
+	        this.latestVersion = source["latestVersion"];
+	        this.updateInfo = this.convertValues(source["updateInfo"], UpdateInfo);
+	        this.downloadProgress = source["downloadProgress"];
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
