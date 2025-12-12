@@ -4,13 +4,18 @@ import { useRouter } from 'vue-router'
 import { NButton, NIcon, NSpin } from 'naive-ui'
 import { RocketOutlined } from '@vicons/antd'
 import { useAuthStore } from '@/stores/auth'
+import { useBootstrapStore } from '@/stores/bootstrap'
+import SplashProgress from '@/components/SplashProgress.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const bootstrapStore = useBootstrapStore()
 const { t } = useI18n()
 
 const isBackendReady = ref(false)
+const isAutoRedirecting = ref(false)
+const showProgress = computed(() => !isBackendReady.value || isAutoRedirecting.value)
 
 // Typewriter effect state
 const taglines = [
@@ -79,18 +84,45 @@ function startEraser() {
 }
 
 onMounted(async () => {
+  bootstrapStore.mark('splashMountedMs')
   // Start typewriter effect
   startTypewriter()
 
   // Initialize auth and check for existing session
+  const authStart = typeof performance !== 'undefined' ? performance.now() : 0
   await authStore.initialize()
+  if (typeof performance !== 'undefined') {
+    bootstrapStore.mark('authInitMs', performance.now() - authStart)
+  }
 
   // Backend is ready
   isBackendReady.value = true
+  bootstrapStore.mark('totalToReadyMs')
 
   // If user is already authenticated, auto-redirect to dashboard
   if (authStore.isAuthenticated) {
-    router.replace('/dashboard')
+    isAutoRedirecting.value = true
+    void import('@/views/Dashboard.vue')
+    setTimeout(() => {
+      const last = localStorage.getItem("lastAuthedRoute");
+      if (
+        last &&
+        last.startsWith("/") &&
+        !["/splash", "/login", "/register"].includes(last) &&
+        router.resolve(last).matched.length > 0
+      ) {
+        router.replace(last);
+      } else {
+        router.replace('/dashboard');
+      }
+    }, 600)
+    return
+  }
+
+  if (authStore.usersList.length > 0) {
+    void import('@/views/Login.vue')
+  } else {
+    void import('@/views/Register.vue')
   }
 })
 
@@ -111,7 +143,7 @@ function handleStart() {
 </script>
 
 <template>
-  <div class="splash-container">
+  <div class="splash-container" :class="{ 'auto-redirecting': isAutoRedirecting }">
     <!-- Background Image with Ken Burns effect -->
     <div class="splash-background" />
 
@@ -129,18 +161,27 @@ function handleStart() {
         </p>
       </div>
 
-      <!-- Action Button (always present, content changes) -->
+      <!-- Action Button / Auto-enter -->
       <div class="action-section">
-        <n-button type="primary" size="large" round class="start-button" :disabled="!isBackendReady"
-          @click="handleStart">
+        <SplashProgress
+          v-if="showProgress"
+          :is-ready="isBackendReady"
+          :is-auto-redirecting="isAutoRedirecting"
+        />
+        <n-button
+          v-if="!showProgress && isBackendReady"
+          type="primary"
+          size="large"
+          round
+          class="start-button"
+          @click="handleStart"
+        >
           <template #icon>
-            <n-spin v-if="!isBackendReady" :size="18" :stroke-width="3" />
-            <n-icon v-else>
+            <n-icon>
               <RocketOutlined />
             </n-icon>
           </template>
-          <span v-if="!isBackendReady">{{ t('splash.initializing') }}</span>
-          <span v-else>{{ t('splash.start') }}</span>
+          <span>{{ t('splash.start') }}</span>
         </n-button>
       </div>
 
@@ -158,8 +199,19 @@ function handleStart() {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
+}
+
+.splash-container.auto-redirecting {
+  animation: splashFadeOut 0.6s ease forwards;
+}
+
+@keyframes splashFadeOut {
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+  }
 }
 
 .splash-background {
@@ -261,6 +313,8 @@ function handleStart() {
 .action-section {
   min-height: 80px;
   display: flex;
+  flex-direction: column;
+  gap: 14px;
   align-items: center;
   justify-content: center;
 }

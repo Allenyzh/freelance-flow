@@ -57,7 +57,7 @@ function handleLocaleSelect(key: 'zh-CN' | 'en-US') {
 
 <style scoped>
 .auth-layout {
-    height: 100vh;
+    height: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -81,9 +81,11 @@ function handleLocaleSelect(key: 'zh-CN' | 'en-US') {
 
 .auth-content {
     flex: 1;
+    min-height: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: clamp(12px, 2.5vh, 20px);
+    overflow: auto;
 }
 </style>

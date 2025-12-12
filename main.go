@@ -4,6 +4,7 @@ import (
 	"embed"
 	"freelance-flow/internal/db"
 	"freelance-flow/internal/services"
+	"time"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -13,13 +14,17 @@ import (
 var assets embed.FS
 
 func main() {
+	start := time.Now()
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Initialize Database
+	dbStart := time.Now()
 	dbConn := db.Init()
+	dbDuration := time.Since(dbStart)
 
 	// Initialize Services
+	servicesStart := time.Now()
 	authService := services.NewAuthService(dbConn)
 	clientService := services.NewClientService(dbConn)
 	projectService := services.NewProjectService(dbConn)
@@ -29,12 +34,22 @@ func main() {
 	settingsService := services.NewSettingsService(dbConn)
 	invoiceEmailSettingsService := services.NewInvoiceEmailSettingsService(dbConn)
 	reportService := services.NewReportService(dbConn)
+	servicesDuration := time.Since(servicesStart)
+
+	app.SetBootTimings(BootTimings{
+		ProcessStart:    start,
+		DbInitMs:        dbDuration.Milliseconds(),
+		ServicesInitMs:  servicesDuration.Milliseconds(),
+		TotalBeforeUI:   time.Since(start).Milliseconds(),
+	})
 
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "FreelanceFlow",
-		Width:  1024,
-		Height: 768,
+		Width:     1200,
+		Height:    800,
+		MinWidth:  1024,
+		MinHeight: 720,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

@@ -1,19 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
-import { createPinia } from "pinia";
+import { flushPromises } from "@vue/test-utils";
 import UserSettings from "@/views/settings/UserSettings.vue";
 import type { UserSettings as UserSettingsType } from "@/types";
-
-vi.mock("naive-ui", async () => {
-  const actual = await vi.importActual<typeof import("naive-ui")>("naive-ui");
-  return {
-    ...actual,
-    useMessage: () => ({
-      success: vi.fn(),
-      error: vi.fn(),
-    }),
-  };
-});
+import { mountView } from "@/test-utils/mount";
 
 const mockApi = vi.hoisted(() => ({
   settings: {
@@ -48,9 +37,7 @@ describe("UserSettings view", () => {
   });
 
   it("loads settings and saves on submit", async () => {
-    const wrapper = mount(UserSettings, {
-      global: { plugins: [createPinia()] },
-    });
+    const wrapper = mountView(UserSettings);
 
     await flushPromises();
     expect(mockApi.settings.get).toHaveBeenCalledTimes(1);

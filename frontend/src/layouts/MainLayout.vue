@@ -16,6 +16,7 @@ import {
     ClockCircleOutlined,
     FileTextOutlined,
     BarChartOutlined,
+    WalletOutlined,
     SettingOutlined,
     QuestionCircleOutlined,
     GlobalOutlined,
@@ -43,8 +44,34 @@ const menuOptions = computed<MenuOption[]>(() => [
     { label: t('nav.timesheet'), key: 'timesheet', icon: renderIcon(ClockCircleOutlined) },
     { label: t('nav.invoices'), key: 'invoices', icon: renderIcon(FileTextOutlined) },
     { label: t('nav.reports'), key: 'reports', icon: renderIcon(BarChartOutlined) },
-    { label: t('nav.settings'), key: 'settings', icon: renderIcon(SettingOutlined) },
-    { label: 'Invoice Email', key: 'settings/invoice', icon: renderIcon(SettingOutlined) },
+    { label: t('nav.finance'), key: 'finance', icon: renderIcon(WalletOutlined) },
+    {
+        label: t('nav.settings'),
+        key: 'settings',
+        icon: renderIcon(SettingOutlined),
+        children: [
+            {
+                label: t('settings.general.title'),
+                key: 'settings/general',
+            },
+            {
+                label: t('settings.profile.title'),
+                key: 'settings/profile',
+            },
+            {
+                label: t('settings.invoice.title'),
+                key: 'settings/invoice',
+            },
+            {
+                label: t('settings.email.title'),
+                key: 'settings/email',
+            },
+            {
+                label: t('settings.finance.title'),
+                key: 'settings/finance',
+            },
+        ],
+    },
 ])
 
 const activeKey = ref<string>(route.path.substring(1) || 'dashboard')
@@ -97,7 +124,7 @@ function handleMenuUpdate(key: string) {
 </script>
 
 <template>
-    <n-layout style="height: 100vh">
+    <n-layout class="main-layout">
 
         <!-- 1. Header Area -->
         <n-layout-header bordered class="app-header">
@@ -205,6 +232,8 @@ function handleMenuUpdate(key: string) {
 /* Content Styles */
 .app-content {
     padding: 24px;
+    height: 100%;
+    overflow: auto;
 }
 
 /* Footer Styles */
@@ -218,6 +247,12 @@ function handleMenuUpdate(key: string) {
     font-size: 0.85rem;
     font-family: 'Inter', sans-serif;
     border-top: 1px solid var(--n-border-color);
+}
+
+.main-layout {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
 .status-bar {

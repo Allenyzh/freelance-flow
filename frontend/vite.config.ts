@@ -16,5 +16,6 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.test.ts", "src/**/*.spec.ts"],
     exclude: ["tests/e2e/**", "test-results/**", "node_modules/**"],
+    setupFiles: ["src/test/setup.ts"],
   },
 });

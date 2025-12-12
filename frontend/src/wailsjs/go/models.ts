@@ -345,6 +345,101 @@ export namespace dto {
 	        this.settingsJson = source["settingsJson"];
 	    }
 	}
+	export class ReportChartSeries {
+	    dates: string[];
+	    revenue: number[];
+	    hours: number[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ReportChartSeries(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dates = source["dates"];
+	        this.revenue = source["revenue"];
+	        this.hours = source["hours"];
+	    }
+	}
+	export class ReportFilter {
+	    startDate: string;
+	    endDate: string;
+	    clientId: number;
+	    projectId: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReportFilter(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.startDate = source["startDate"];
+	        this.endDate = source["endDate"];
+	        this.clientId = source["clientId"];
+	        this.projectId = source["projectId"];
+	    }
+	}
+	export class ReportRow {
+	    date: string;
+	    clientId: number;
+	    clientName: string;
+	    projectId: number;
+	    projectName: string;
+	    hours: number;
+	    income: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReportRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.date = source["date"];
+	        this.clientId = source["clientId"];
+	        this.clientName = source["clientName"];
+	        this.projectId = source["projectId"];
+	        this.projectName = source["projectName"];
+	        this.hours = source["hours"];
+	        this.income = source["income"];
+	    }
+	}
+	export class ReportOutput {
+	    totalHours: number;
+	    totalIncome: number;
+	    rows: ReportRow[];
+	    chart: ReportChartSeries;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReportOutput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.totalHours = source["totalHours"];
+	        this.totalIncome = source["totalIncome"];
+	        this.rows = this.convertValues(source["rows"], ReportRow);
+	        this.chart = this.convertValues(source["chart"], ReportChartSeries);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class SetInvoiceTimeEntriesInput {
 	    invoiceId: number;
 	    timeEntryIds: number[];
@@ -606,6 +701,48 @@ export namespace dto {
 	        this.invoiceTerms = source["invoiceTerms"];
 	        this.defaultMessageTemplate = source["defaultMessageTemplate"];
 	    }
+	}
+
+}
+
+export namespace main {
+	
+	export class BootTimings {
+	    // Go type: time
+	    processStart: any;
+	    dbInitMs: number;
+	    servicesInitMs: number;
+	    totalBeforeUiMs: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new BootTimings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.processStart = this.convertValues(source["processStart"], null);
+	        this.dbInitMs = source["dbInitMs"];
+	        this.servicesInitMs = source["servicesInitMs"];
+	        this.totalBeforeUiMs = source["totalBeforeUiMs"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

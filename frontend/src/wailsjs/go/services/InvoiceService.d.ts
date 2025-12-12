@@ -10,6 +10,8 @@ export function GeneratePDF(arg1:number,arg2:number,arg3:string):Promise<string>
 
 export function Get(arg1:number,arg2:number):Promise<dto.InvoiceOutput>;
 
+export function GetDefaultMessage(arg1:number,arg2:number):Promise<string>;
+
 export function List(arg1:number):Promise<Array<dto.InvoiceOutput>>;
 
 export function SendEmail(arg1:number,arg2:number):Promise<boolean>;

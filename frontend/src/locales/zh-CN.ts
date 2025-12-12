@@ -16,6 +16,7 @@ export default {
     total: "合计",
     status: "状态",
     actions: "操作",
+    configure: "配置",
   },
 
   // 启动画面
@@ -23,6 +24,14 @@ export default {
     tagline: "简化您的自由职业业务管理",
     initializing: "正在初始化...",
     start: "启动",
+    welcomeBack: "欢迎回来，正在进入工作台...",
+    progress: {
+      backendInit: "正在初始化后端",
+      updateCheck: "正在检查更新",
+      sessionRestore: "正在恢复会话",
+      preparingWorkspace: "正在准备工作台",
+      ready: "准备完成",
+    },
   },
 
   // 认证
@@ -65,6 +74,7 @@ export default {
     timesheet: "工时",
     invoices: "发票",
     reports: "报表",
+    finance: "财务",
     settings: "设置",
     help: "帮助",
   },
@@ -308,5 +318,122 @@ export default {
   reports: {
     title: "报表",
     subtitle: "数据分析与洞察",
+  },
+
+  // 财务
+  finance: {
+    title: "财务",
+    subtitle: "管理您的账户并跟踪现金流",
+    nav: {
+      overview: "概览",
+      accounts: "账户",
+      transactions: "交易",
+      import: "导入",
+      categories: "分类",
+      reports: "报表",
+    },
+    overview: {
+      title: "财务概览",
+      subtitle: "一目了然掌握您的财务状况",
+      quickActions: "快速操作",
+      viewAllAccounts: "查看所有账户",
+      manageYourAccounts: "管理您的银行账户和信用卡",
+      viewAllTransactions: "查看所有交易",
+      browseRecentTransactions: "浏览和管理最近的交易记录",
+      importStatement: "导入银行对账单",
+      importBankStatement: "从银行CSV或OFX文件导入交易",
+      viewReports: "查看报表",
+      analyzeYourFinance: "分析您的收入、支出和趋势",
+    },
+    summary: {
+      totalBalance: "总余额",
+      totalIncome: "总收入",
+      totalExpense: "总支出",
+      netCashFlow: "净现金流",
+    },
+    actions: {
+      addTransaction: "添加交易",
+      addAccount: "添加账户",
+    },
+    accounts: {
+      title: "账户管理",
+      addAccount: "添加账户",
+      table: {
+        name: "账户名称",
+        type: "类型",
+        currency: "货币",
+        balance: "余额",
+      },
+      types: {
+        checking: "支票账户",
+        savings: "储蓄账户",
+        credit: "信用卡",
+        investment: "投资账户",
+      },
+      errors: {
+        loadFailed: "加载账户失败",
+      },
+    },
+    transactions: {
+      title: "交易记录",
+      addTransaction: "添加交易",
+    },
+    import: {
+      title: "导入银行对账单",
+    },
+    categories: {
+      title: "分类管理",
+    },
+    reports: {
+      title: "财务报表",
+    },
+    filters: {
+      dateRange: "选择日期范围",
+      allAccounts: "所有账户",
+      allTypes: "所有类型",
+      income: "收入",
+      expense: "支出",
+      transfer: "转账",
+      adjustment: "调整",
+    },
+    table: {
+      date: "日期",
+      account: "账户",
+      type: "类型",
+      description: "描述",
+      category: "分类",
+      amount: "金额",
+    },
+    empty: {
+      noTransactions: "暂无交易记录",
+      addFirstTransaction: "添加首笔交易",
+    },
+  },
+
+  // 设置
+  settings: {
+    index: {
+      description: "管理您的应用程序偏好和配置",
+    },
+    general: {
+      title: "通用",
+      description: "语言、货币、日期格式和其他偏好设置",
+    },
+    profile: {
+      title: "个人资料",
+      description: "您的个人信息和公司详细信息",
+    },
+    invoice: {
+      title: "发票",
+      description: "发票默认设置、条款和抬头信息",
+    },
+    email: {
+      title: "邮件",
+      description: "邮件提供商设置和模板",
+    },
+    finance: {
+      title: "财务",
+      description: "财务账户和交易设置",
+    },
   },
 };

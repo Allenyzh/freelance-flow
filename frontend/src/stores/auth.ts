@@ -28,25 +28,28 @@ export const useAuthStore = defineStore("auth", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      // Check if users exist and fetch them
-      const hasExistingUsers = await HasUsers();
-      if (hasExistingUsers) {
-        usersList.value = await GetAllUsers();
-      }
-
-      // Try to restore session from localStorage
       const savedUserId = localStorage.getItem("currentUserId");
-      if (savedUserId && hasExistingUsers) {
-        try {
-          const id = parseInt(savedUserId, 10);
-          if (!isNaN(id)) {
-            const user = await GetUserByID(id);
-            currentUser.value = user;
-          }
-        } catch {
-          // Session invalid, clear it
-          localStorage.removeItem("currentUserId");
-        }
+      const hasExistingUsers = await HasUsers();
+
+      if (hasExistingUsers) {
+        const usersPromise = GetAllUsers();
+        const userPromise =
+          savedUserId != null
+            ? (async () => {
+                const id = parseInt(savedUserId, 10);
+                if (isNaN(id)) return null;
+                try {
+                  return await GetUserByID(id);
+                } catch {
+                  localStorage.removeItem("currentUserId");
+                  return null;
+                }
+              })()
+            : Promise.resolve(null);
+
+        const [users, user] = await Promise.all([usersPromise, userPromise]);
+        usersList.value = users;
+        if (user) currentUser.value = user;
       }
 
       isInitialized.value = true;
@@ -105,6 +108,7 @@ export const useAuthStore = defineStore("auth", () => {
   function logout() {
     currentUser.value = null;
     localStorage.removeItem("currentUserId");
+    localStorage.removeItem("lastAuthedRoute");
   }
 
   function clearError() {
@@ -115,6 +119,7 @@ export const useAuthStore = defineStore("auth", () => {
     // Clear current session but keep users list (logic is same as logout basically)
     currentUser.value = null;
     localStorage.removeItem("currentUserId");
+    localStorage.removeItem("lastAuthedRoute");
   }
 
   return {

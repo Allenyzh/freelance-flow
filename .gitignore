@@ -20,10 +20,6 @@ UserAgents.md
 *.log
 *.prof
 build/
-
-# Vue / Node
-node_modules/
-dist/
 .env
 .env.*
 npm-debug.log

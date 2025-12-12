@@ -18,6 +18,10 @@ export function Get(arg1, arg2) {
   return window['go']['services']['InvoiceService']['Get'](arg1, arg2);
 }
 
+export function GetDefaultMessage(arg1, arg2) {
+  return window['go']['services']['InvoiceService']['GetDefaultMessage'](arg1, arg2);
+}
+
 export function List(arg1) {
   return window['go']['services']['InvoiceService']['List'](arg1);
 }

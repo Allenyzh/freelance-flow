@@ -11,6 +11,10 @@ import "vfonts/FiraCode.css";
 // Import locale messages
 import { messages } from "./locales";
 
+if (typeof performance !== "undefined") {
+  performance.mark("app:main:start");
+}
+
 // I18n Setup
 const i18n = createI18n({
   legacy: false, // Vue 3 Composition API

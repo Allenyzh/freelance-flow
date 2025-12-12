@@ -142,20 +142,24 @@ function goToRegister() {
 
 <style scoped>
 .login-container {
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 40px;
+  padding: clamp(16px, 3vh, 40px);
+  min-height: 0;
+  overflow: auto;
 }
 
 .login-card {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 24px;
-  padding: 48px;
+  padding: clamp(24px, 4vh, 48px);
   max-width: 600px;
-  width: 100%;
+  width: min(600px, 92%);
+  max-height: calc(100% - 8px);
+  overflow: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   text-align: center;
 }

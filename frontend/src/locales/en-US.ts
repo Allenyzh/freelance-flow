@@ -16,6 +16,7 @@ export default {
     total: "Total",
     status: "Status",
     actions: "Actions",
+    configure: "Configure",
   },
 
   // Splash Screen
@@ -23,6 +24,14 @@ export default {
     tagline: "Streamline your freelance business",
     initializing: "Initializing...",
     start: "Start",
+    welcomeBack: "Welcome back, entering your workspace...",
+    progress: {
+      backendInit: "Initializing backend",
+      updateCheck: "Checking updates",
+      sessionRestore: "Restoring session",
+      preparingWorkspace: "Preparing workspace",
+      ready: "Ready",
+    },
   },
 
   // Authentication
@@ -65,6 +74,7 @@ export default {
     timesheet: "Timesheet",
     invoices: "Invoices",
     reports: "Reports",
+    finance: "Finance",
     settings: "Settings",
     help: "Help",
   },
@@ -310,5 +320,122 @@ export default {
   reports: {
     title: "Reports",
     subtitle: "Analytics and insights",
+  },
+
+  // Finance
+  finance: {
+    title: "Finance",
+    subtitle: "Manage your accounts and track cash flow",
+    nav: {
+      overview: "Overview",
+      accounts: "Accounts",
+      transactions: "Transactions",
+      import: "Import",
+      categories: "Categories",
+      reports: "Reports",
+    },
+    overview: {
+      title: "Financial Overview",
+      subtitle: "Your financial health at a glance",
+      quickActions: "Quick Actions",
+      viewAllAccounts: "View All Accounts",
+      manageYourAccounts: "Manage your bank accounts and credit cards",
+      viewAllTransactions: "View All Transactions",
+      browseRecentTransactions: "Browse and manage your recent transactions",
+      importStatement: "Import Bank Statement",
+      importBankStatement: "Import transactions from bank CSV or OFX files",
+      viewReports: "View Reports",
+      analyzeYourFinance: "Analyze your income, expenses and trends",
+    },
+    summary: {
+      totalBalance: "Total Balance",
+      totalIncome: "Total Income",
+      totalExpense: "Total Expenses",
+      netCashFlow: "Net Cash Flow",
+    },
+    actions: {
+      addTransaction: "Add Transaction",
+      addAccount: "Add Account",
+    },
+    accounts: {
+      title: "Accounts",
+      addAccount: "Add Account",
+      table: {
+        name: "Account Name",
+        type: "Type",
+        currency: "Currency",
+        balance: "Balance",
+      },
+      types: {
+        checking: "Checking",
+        savings: "Savings",
+        credit: "Credit Card",
+        investment: "Investment",
+      },
+      errors: {
+        loadFailed: "Failed to load accounts",
+      },
+    },
+    transactions: {
+      title: "Transactions",
+      addTransaction: "Add Transaction",
+    },
+    import: {
+      title: "Import Bank Statement",
+    },
+    categories: {
+      title: "Categories",
+    },
+    reports: {
+      title: "Financial Reports",
+    },
+    filters: {
+      dateRange: "Select date range",
+      allAccounts: "All Accounts",
+      allTypes: "All Types",
+      income: "Income",
+      expense: "Expense",
+      transfer: "Transfer",
+      adjustment: "Adjustment",
+    },
+    table: {
+      date: "Date",
+      account: "Account",
+      type: "Type",
+      description: "Description",
+      category: "Category",
+      amount: "Amount",
+    },
+    empty: {
+      noTransactions: "No transactions found",
+      addFirstTransaction: "Add First Transaction",
+    },
+  },
+
+  // Settings
+  settings: {
+    index: {
+      description: "Manage your application preferences and configuration",
+    },
+    general: {
+      title: "General",
+      description: "Language, currency, date format and other preferences",
+    },
+    profile: {
+      title: "Profile",
+      description: "Your personal information and company details",
+    },
+    invoice: {
+      title: "Invoice",
+      description: "Invoice defaults, terms and header information",
+    },
+    email: {
+      title: "Email",
+      description: "Email provider settings and templates",
+    },
+    finance: {
+      title: "Finance",
+      description: "Finance accounts and transaction settings",
+    },
   },
 };

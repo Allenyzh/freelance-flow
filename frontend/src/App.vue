@@ -1,21 +1,61 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AppProvider from '@/components/AppProvider.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import UpdateDialog from '@/components/update/UpdateDialog.vue'
 import { useUpdateStore } from '@/stores/update'
+import { useBootstrapStore } from '@/stores/bootstrap'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 const isAuthLayout = computed(() => route.meta.layout === 'auth')
 const updateStore = useUpdateStore()
+const bootstrapStore = useBootstrapStore()
+const authStore = useAuthStore()
+
+function restoreLastRouteIfNeeded() {
+  if (!authStore.isAuthenticated) return
+  if (route.meta.requiresAuth) return
+
+  const last = localStorage.getItem('lastAuthedRoute')
+  if (
+    last &&
+    last.startsWith('/') &&
+    !['/splash', '/login', '/register'].includes(last) &&
+    router.resolve(last).matched.length > 0
+  ) {
+    router.replace(last)
+  } else {
+    router.replace('/dashboard')
+  }
+}
 
 onMounted(() => {
+  bootstrapStore.init()
+  bootstrapStore.mark('appMountedMs')
   // Initialize update event listeners first so state/Progress events are received
+  const updateStart = typeof performance !== 'undefined' ? performance.now() : 0
   updateStore.init()
-  // Check for update on app launch (or fetch status if backend already checked)
-  updateStore.checkForUpdate()
+  if (typeof performance !== 'undefined') {
+    bootstrapStore.mark('updateInitMs', performance.now() - updateStart)
+  }
+
+  const handleVisibility = () => {
+    if (document.visibilityState === 'visible') {
+      restoreLastRouteIfNeeded()
+    }
+  }
+  const handleFocus = () => restoreLastRouteIfNeeded()
+  document.addEventListener('visibilitychange', handleVisibility)
+  window.addEventListener('focus', handleFocus)
+
+  onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibility)
+    window.removeEventListener('focus', handleFocus)
+  })
 })
 </script>
 

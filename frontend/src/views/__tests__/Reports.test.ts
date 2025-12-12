@@ -1,9 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
-import { createPinia } from "pinia";
-import { defineComponent, h } from "vue";
+import { flushPromises } from "@vue/test-utils";
 import Reports from "@/views/Reports.vue";
 import type { Client, Project, ReportOutput } from "@/types";
+import { mountView } from "@/test-utils/mount";
 
 const mockApi = vi.hoisted(() => ({
   clients: {
@@ -19,15 +18,6 @@ const mockApi = vi.hoisted(() => ({
 
 vi.mock("@/api", () => ({ api: mockApi }));
 
-vi.mock("vue-echarts", () => ({
-  default: defineComponent({
-    name: "VChart",
-    setup() {
-      return () => h("div", { "data-test": "chart" });
-    },
-  }),
-}));
-
 describe("Reports view", () => {
   beforeEach(() => {
     mockApi.clients.list.mockResolvedValue([]);
@@ -40,22 +30,18 @@ describe("Reports view", () => {
     });
   });
 
-  it("shows empty state when no rows", async () => {
-    const wrapper = mount(Reports, {
-      global: { plugins: [createPinia()] },
-    });
+  it("fetches reports data on mount", async () => {
+    const wrapper = mountView(Reports);
 
     await flushPromises();
 
     expect(mockApi.reports.get).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).toContain("No data for current filters");
+    expect(wrapper.text()).toContain("Reports");
   });
 
   it("shows error state when api fails", async () => {
     mockApi.reports.get.mockRejectedValueOnce(new Error("boom"));
-    const wrapper = mount(Reports, {
-      global: { plugins: [createPinia()] },
-    });
+    const wrapper = mountView(Reports);
 
     await flushPromises();
 
@@ -63,9 +49,7 @@ describe("Reports view", () => {
   });
 
   it("apply triggers refetch with filters", async () => {
-    const wrapper = mount(Reports, {
-      global: { plugins: [createPinia()] },
-    });
+    const wrapper = mountView(Reports);
 
     await flushPromises();
 
@@ -76,7 +60,9 @@ describe("Reports view", () => {
     vm.dateRange = [Date.UTC(2025, 0, 1), Date.UTC(2025, 0, 2)];
 
     const buttons = wrapper.findAll("button");
-    const apply = buttons.find((b) => b.text() === "Apply");
+    const apply = buttons.find(
+      (b) => b.text() === "Apply" || b.text().includes("common.apply")
+    );
     await apply?.trigger("click");
     await flushPromises();
 

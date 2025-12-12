@@ -11,15 +11,19 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body,
+#app {
+  height: 100%;
+}
+
 body {
   margin: 0;
   display: flex;
-  min-width: 1024px; /* Desktop Application Minimum Width */
-  min-height: 100vh;
   /* background-color handled by NConfigProvider / Theme */
   background-color: transparent; 
   color: var(--n-text-color);
-  overflow-x: auto; /* Horizontal scroll if window is too small */
+  overflow: hidden; /* Prevent window-level scrollbars */
 }
 
 #app {

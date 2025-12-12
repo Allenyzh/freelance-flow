@@ -58,14 +58,70 @@ const routes = [
     meta: { requiresAuth: true, layout: "main" },
   },
   {
-    path: "/settings/invoice",
-    component: () => import("@/views/settings/InvoiceSettings.vue"),
+    path: "/finance",
+    component: () => import("@/views/finance/FinanceLayout.vue"),
     meta: { requiresAuth: true, layout: "main" },
+    children: [
+      {
+        path: "",
+        redirect: "/finance/overview",
+      },
+      {
+        path: "overview",
+        component: () => import("@/views/finance/index.vue"),
+      },
+      {
+        path: "accounts",
+        component: () => import("@/views/finance/accounts/index.vue"),
+      },
+      {
+        path: "transactions",
+        component: () => import("@/views/finance/transactions/index.vue"),
+      },
+      {
+        path: "import",
+        component: () => import("@/views/finance/import/index.vue"),
+      },
+      {
+        path: "categories",
+        component: () => import("@/views/finance/categories/index.vue"),
+      },
+      {
+        path: "reports",
+        component: () => import("@/views/finance/reports/index.vue"),
+      },
+    ],
   },
   {
     path: "/settings",
-    component: () => import("@/views/settings/UserSettings.vue"),
+    component: () => import("@/views/settings/SettingsLayout.vue"),
     meta: { requiresAuth: true, layout: "main" },
+    children: [
+      {
+        path: "",
+        redirect: "/settings/general",
+      },
+      {
+        path: "general",
+        component: () => import("@/views/settings/GeneralSettings.vue"),
+      },
+      {
+        path: "profile",
+        component: () => import("@/views/settings/ProfileSettings.vue"),
+      },
+      {
+        path: "invoice",
+        component: () => import("@/views/settings/InvoiceSettings.vue"),
+      },
+      {
+        path: "email",
+        component: () => import("@/views/settings/EmailSettings.vue"),
+      },
+      {
+        path: "finance",
+        component: () => import("@/views/settings/FinanceSettings.vue"),
+      },
+    ],
   },
 ];
 
@@ -73,6 +129,13 @@ const router = createRouter({
   // Use Hash history for Wails/Desktop compatibility
   history: createWebHashHistory(),
   routes,
+});
+
+// Persist last authenticated route for session restore.
+router.afterEach((to) => {
+  if (to.meta.requiresAuth) {
+    localStorage.setItem("lastAuthedRoute", to.fullPath);
+  }
 });
 
 // Navigation guard
