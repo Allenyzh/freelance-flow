@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   NForm,
   NFormItem,
@@ -12,9 +12,11 @@ import {
 } from "naive-ui";
 import { useSettingsStore } from "@/stores/settings";
 import type { UserSettings } from "@/types";
+import { useI18n } from "vue-i18n";
 
 const store = useSettingsStore();
 const message = useMessage();
+const { t } = useI18n();
 
 const formRef = ref<InstanceType<typeof NForm> | null>(null);
 const form = ref<UserSettings>({
@@ -30,18 +32,18 @@ const form = ref<UserSettings>({
   senderPhone: "",
   senderEmail: "",
   senderPostalCode: "",
-  invoiceTerms: "Due upon receipt",
-  defaultMessageTemplate: "Thank you for your business.",
+  invoiceTerms: t("settings.invoice.defaults.invoiceTerms"),
+  defaultMessageTemplate: t("settings.invoice.defaults.defaultMessageTemplate"),
 });
 
 const saving = ref(false);
 
-const currencyOptions = [
-  { label: "USD - US Dollar", value: "USD" },
-  { label: "CAD - Canadian Dollar", value: "CAD" },
-  { label: "CNY - Chinese Yuan", value: "CNY" },
-  { label: "EUR - Euro", value: "EUR" },
-];
+const currencyOptions = computed(() => [
+  { label: `USD - ${t("settings.general.options.currency.usd")}`, value: "USD" },
+  { label: `CAD - ${t("settings.general.options.currency.cad")}`, value: "CAD" },
+  { label: `CNY - ${t("settings.general.options.currency.cny")}`, value: "CNY" },
+  { label: `EUR - ${t("settings.general.options.currency.eur")}`, value: "EUR" },
+]);
 
 const timezoneOptions = [
   { label: "UTC", value: "UTC" },
@@ -57,23 +59,31 @@ const dateFormatOptions = [
   { label: "DD/MM/YYYY", value: "02/01/2006" },
 ];
 
-const rules = {
-  currency: { required: true, message: "Currency is required", trigger: "blur" },
-  dateFormat: {
+const rules = computed(() => ({
+  currency: {
     required: true,
-    message: "Date format is required",
+    message: t("settings.general.validation.currencyRequired"),
     trigger: "blur",
   },
-  timezone: { required: true, message: "Timezone is required", trigger: "blur" },
+  dateFormat: {
+    required: true,
+    message: t("settings.general.validation.dateFormatRequired"),
+    trigger: "blur",
+  },
+  timezone: {
+    required: true,
+    message: t("settings.general.validation.timezoneRequired"),
+    trigger: "blur",
+  },
   senderEmail: {
     validator: (_: unknown, value: string) => {
       if (!value) return true;
       return value.includes("@");
     },
-    message: "Invalid email format",
+    message: t("settings.profile.validation.invalidEmail"),
     trigger: ["blur", "input"],
   },
-};
+}));
 
 onMounted(async () => {
   await store.fetchSettings();
@@ -91,9 +101,9 @@ async function handleSave() {
   saving.value = true;
   try {
     await store.saveSettings(form.value);
-    message.success("Saved settings");
+    message.success(t("common.saved"));
   } catch (e) {
-    message.error(e instanceof Error ? e.message : "Failed to save settings");
+    message.error(e instanceof Error ? e.message : t("settings.general.messages.saveError"));
   } finally {
     saving.value = false;
   }
@@ -102,9 +112,9 @@ async function handleSave() {
 
 <template>
   <div class="user-settings">
-    <h2 class="section-title">Settings</h2>
+    <h2 class="section-title">{{ t("nav.settings") }}</h2>
     <n-form ref="formRef" :model="form" :rules="rules" label-placement="top">
-      <n-form-item label="Currency" path="currency">
+      <n-form-item :label="t('settings.general.fields.currency')" path="currency">
         <n-select
           v-model:value="form.currency"
           :options="currencyOptions"
@@ -112,7 +122,7 @@ async function handleSave() {
         />
       </n-form-item>
 
-      <n-form-item label="Default Tax Rate" path="defaultTaxRate">
+      <n-form-item :label="t('settings.general.fields.defaultTaxRate')" path="defaultTaxRate">
         <n-input-number
           v-model:value="form.defaultTaxRate"
           :min="0"
@@ -120,10 +130,10 @@ async function handleSave() {
           :step="0.01"
           :disabled="saving"
         />
-        <div class="hint">Use decimal, e.g. 0.13 for 13%.</div>
+        <div class="hint">{{ t("settings.general.hints.taxRate") }}</div>
       </n-form-item>
 
-      <n-form-item label="Date Format" path="dateFormat">
+      <n-form-item :label="t('settings.general.fields.dateFormat')" path="dateFormat">
         <n-select
           v-model:value="form.dateFormat"
           :options="dateFormatOptions"
@@ -131,7 +141,7 @@ async function handleSave() {
         />
       </n-form-item>
 
-      <n-form-item label="Timezone" path="timezone">
+      <n-form-item :label="t('settings.general.fields.timezone')" path="timezone">
         <n-select
           v-model:value="form.timezone"
           :options="timezoneOptions"
@@ -140,30 +150,30 @@ async function handleSave() {
         />
       </n-form-item>
 
-      <h3 class="sub-title">Invoice Header</h3>
+      <h3 class="sub-title">{{ t("settings.invoice.headerCardTitle") }}</h3>
 
-      <n-form-item label="Sender Name">
+      <n-form-item :label="t('settings.invoice.fields.senderName')">
         <n-input v-model:value="form.senderName" :disabled="saving" />
       </n-form-item>
-      <n-form-item label="Sender Company">
+      <n-form-item :label="t('settings.invoice.fields.senderCompany')">
         <n-input v-model:value="form.senderCompany" :disabled="saving" />
       </n-form-item>
-      <n-form-item label="Sender Address">
+      <n-form-item :label="t('settings.invoice.fields.senderAddress')">
         <n-input v-model:value="form.senderAddress" :disabled="saving" />
       </n-form-item>
-      <n-form-item label="Sender Phone">
+      <n-form-item :label="t('settings.invoice.fields.senderPhone')">
         <n-input v-model:value="form.senderPhone" :disabled="saving" />
       </n-form-item>
-      <n-form-item label="Sender Email" path="senderEmail">
+      <n-form-item :label="t('settings.invoice.fields.senderEmail')" path="senderEmail">
         <n-input v-model:value="form.senderEmail" :disabled="saving" />
       </n-form-item>
-      <n-form-item label="Sender Postal Code">
+      <n-form-item :label="t('settings.invoice.fields.senderPostalCode')">
         <n-input v-model:value="form.senderPostalCode" :disabled="saving" />
       </n-form-item>
 
-      <h3 class="sub-title">Invoice Defaults</h3>
+      <h3 class="sub-title">{{ t("settings.invoice.defaultsCardTitle") }}</h3>
 
-      <n-form-item label="Invoice Terms">
+      <n-form-item :label="t('settings.invoice.fields.invoiceTerms')">
         <n-input
           type="textarea"
           v-model:value="form.invoiceTerms"
@@ -172,7 +182,7 @@ async function handleSave() {
         />
       </n-form-item>
 
-      <n-form-item label="Default Message Template">
+      <n-form-item :label="t('settings.invoice.fields.defaultMessageTemplate')">
         <n-input
           type="textarea"
           v-model:value="form.defaultMessageTemplate"
@@ -183,7 +193,7 @@ async function handleSave() {
 
       <n-space justify="end">
         <n-button type="primary" :loading="saving" @click="handleSave">
-          Save
+          {{ t("common.save") }}
         </n-button>
       </n-space>
     </n-form>
@@ -209,4 +219,3 @@ async function handleSave() {
   color: #888;
 }
 </style>
-

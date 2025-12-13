@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, onMounted, ref } from 'vue'
 import {
-  NButton, NDataTable, NTag, NSpace, NText, NNumberAnimation, NStatistic, NCard,
+  NButton, NDataTable, NTag, NSpace, NText, NNumberAnimation, NStatistic, NCard, NIcon,
   NModal, NInput,
   type DataTableColumns, useMessage
 } from 'naive-ui'

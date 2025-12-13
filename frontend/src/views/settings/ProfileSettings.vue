@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   NForm,
   NFormItem,
@@ -11,9 +11,11 @@ import {
 } from "naive-ui";
 import { useSettingsStore } from "@/stores/settings";
 import type { UserSettings } from "@/types";
+import { useI18n } from "vue-i18n";
 
 const settingsStore = useSettingsStore();
 const message = useMessage();
+const { t } = useI18n();
 
 const formRef = ref<InstanceType<typeof NForm> | null>(null);
 const form = ref<UserSettings>({
@@ -35,16 +37,16 @@ const form = ref<UserSettings>({
 
 const saving = ref(false);
 
-const rules = {
+const rules = computed(() => ({
   senderEmail: {
     validator: (_: unknown, value: string) => {
       if (!value) return true;
       return value.includes("@");
     },
-    message: "Invalid email format",
+    message: t("settings.profile.validation.invalidEmail"),
     trigger: ["blur", "input"],
   },
-};
+}));
 
 onMounted(async () => {
   await settingsStore.fetchSettings();
@@ -81,9 +83,9 @@ async function handleSave() {
       senderPostalCode: form.value.senderPostalCode,
     };
     await settingsStore.saveSettings(updatedSettings);
-    message.success("Saved profile settings");
+    message.success(t("settings.profile.messages.saved"));
   } catch (e) {
-    message.error(e instanceof Error ? e.message : "Failed to save settings");
+    message.error(e instanceof Error ? e.message : t("settings.profile.messages.saveError"));
   } finally {
     saving.value = false;
   }
@@ -92,45 +94,45 @@ async function handleSave() {
 
 <template>
   <div class="profile-settings">
-    <NCard title="Personal Information" :bordered="false">
+    <NCard :title="t('settings.profile.personalCardTitle')" :bordered="false">
       <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
-        <NFormItem label="Name" path="senderName">
+        <NFormItem :label="t('settings.profile.fields.name')" path="senderName">
           <NInput v-model:value="form.senderName" :disabled="saving" />
         </NFormItem>
 
-        <NFormItem label="Email" path="senderEmail">
+        <NFormItem :label="t('settings.profile.fields.email')" path="senderEmail">
           <NInput v-model:value="form.senderEmail" :disabled="saving" />
         </NFormItem>
 
-        <NFormItem label="Phone">
+        <NFormItem :label="t('settings.profile.fields.phone')">
           <NInput v-model:value="form.senderPhone" :disabled="saving" />
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">
           <NButton type="primary" :loading="saving" @click="handleSave">
-            Save
+            {{ t("common.save") }}
           </NButton>
         </NSpace>
       </NForm>
     </NCard>
 
-    <NCard title="Company Information" :bordered="false" style="margin-top: 16px">
+    <NCard :title="t('settings.profile.companyCardTitle')" :bordered="false" style="margin-top: 16px">
       <NForm label-placement="top">
-        <NFormItem label="Company">
+        <NFormItem :label="t('settings.profile.fields.company')">
           <NInput v-model:value="form.senderCompany" :disabled="saving" />
         </NFormItem>
 
-        <NFormItem label="Address">
+        <NFormItem :label="t('settings.profile.fields.address')">
           <NInput v-model:value="form.senderAddress" :disabled="saving" />
         </NFormItem>
 
-        <NFormItem label="Postal Code">
+        <NFormItem :label="t('settings.profile.fields.postalCode')">
           <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">
           <NButton type="primary" :loading="saving" @click="handleSave">
-            Save
+            {{ t("common.save") }}
           </NButton>
         </NSpace>
       </NForm>

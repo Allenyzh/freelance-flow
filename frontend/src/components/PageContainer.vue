@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NElement, NScrollbar } from 'naive-ui'
+import { NElement } from 'naive-ui'
 
 defineProps<{
   title?: string
@@ -11,27 +11,30 @@ defineProps<{
   <n-element tag="div" class="page-container">
     <!-- 1. Page Header (Fixed within the view) -->
     <div class="page-header">
-      <div class="header-main">
-        <h1 v-if="title" class="title">{{ title }}</h1>
-        <div v-if="$slots.extra" class="extra">
-          <slot name="extra"></slot>
+      <div v-if="$slots.header">
+        <slot name="header"></slot>
+      </div>
+      <template v-else>
+        <div class="header-main">
+          <h1 v-if="title" class="title">{{ title }}</h1>
+          <div v-if="$slots.extra" class="extra">
+            <slot name="extra"></slot>
+          </div>
         </div>
-      </div>
-      <p v-if="subtitle" class="subtitle">{{ subtitle }}</p>
-      <div v-if="$slots.headerContent" class="header-content">
-        <slot name="headerContent"></slot>
-      </div>
+        <p v-if="subtitle" class="subtitle">{{ subtitle }}</p>
+        <div v-if="$slots.headerContent" class="header-content">
+          <slot name="headerContent"></slot>
+        </div>
+      </template>
     </div>
 
     <!-- 2. Page Content (Scrollable) -->
     <div class="page-content-wrapper">
-      <n-scrollbar content-style="padding: 0 4px 24px 0;">
-        <div class="page-content">
-          <slot></slot>
-        </div>
-      </n-scrollbar>
+      <div class="page-content">
+        <slot></slot>
+      </div>
     </div>
-    
+
     <!-- 3. Page Footer (Optional, fixed at bottom of view) -->
     <div v-if="$slots.footer" class="page-footer">
       <slot name="footer"></slot>
@@ -81,12 +84,14 @@ defineProps<{
 /* Content */
 .page-content-wrapper {
   flex: 1;
-  min-height: 0; /* Critical for flex scrolling */
+  min-height: 0;
+  /* Critical for flex scrolling */
   position: relative;
+  overflow: auto;
 }
 
 .page-content {
-  /* No padding here, handled by scrollbar content-style to avoid scrollbar overlap */
+  padding: 0 4px 24px 0;
 }
 
 /* Footer */

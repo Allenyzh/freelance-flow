@@ -89,6 +89,10 @@ function handleClose() {
   emit('update:show', false)
 }
 
+function handleUpdateShow(value: boolean) {
+  emit('update:show', value)
+}
+
 function handleSubmit() {
   formRef.value?.validate((errors) => {
     if (!errors) {
@@ -108,7 +112,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <n-modal :show="show" @update:show="handleClose" preset="card" :style="{ width: '600px' }"
+  <n-modal :show="show" @update:show="handleUpdateShow" preset="card" :style="{ width: '600px' }"
     :title="client ? t('clients.editClient') : t('clients.newClient')">
     <n-form ref="formRef" :model="formValue" :rules="rules" label-placement="top"
       require-mark-placement="right-hanging">

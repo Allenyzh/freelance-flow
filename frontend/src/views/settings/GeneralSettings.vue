@@ -13,10 +13,12 @@ import {
 import { useSettingsStore } from "@/stores/settings";
 import { useAppStore } from "@/stores/app";
 import type { UserSettings } from "@/types";
+import { useI18n } from "vue-i18n";
 
 const settingsStore = useSettingsStore();
 const appStore = useAppStore();
 const message = useMessage();
+const { t } = useI18n();
 
 const formRef = ref<InstanceType<typeof NForm> | null>(null);
 const form = ref<UserSettings>({
@@ -38,12 +40,12 @@ const form = ref<UserSettings>({
 
 const saving = ref(false);
 
-const currencyOptions = [
-  { label: "USD - US Dollar", value: "USD" },
-  { label: "CAD - Canadian Dollar", value: "CAD" },
-  { label: "CNY - Chinese Yuan", value: "CNY" },
-  { label: "EUR - Euro", value: "EUR" },
-];
+const currencyOptions = computed(() => [
+  { label: `USD - ${t("settings.general.options.currency.usd")}`, value: "USD" },
+  { label: `CAD - ${t("settings.general.options.currency.cad")}`, value: "CAD" },
+  { label: `CNY - ${t("settings.general.options.currency.cny")}`, value: "CNY" },
+  { label: `EUR - ${t("settings.general.options.currency.eur")}`, value: "EUR" },
+]);
 
 const timezoneOptions = [
   { label: "UTC", value: "UTC" },
@@ -59,15 +61,23 @@ const dateFormatOptions = [
   { label: "DD/MM/YYYY", value: "02/01/2006" },
 ];
 
-const rules = {
-  currency: { required: true, message: "Currency is required", trigger: "blur" },
-  dateFormat: {
+const rules = computed(() => ({
+  currency: {
     required: true,
-    message: "Date format is required",
+    message: t("settings.general.validation.currencyRequired"),
     trigger: "blur",
   },
-  timezone: { required: true, message: "Timezone is required", trigger: "blur" },
-};
+  dateFormat: {
+    required: true,
+    message: t("settings.general.validation.dateFormatRequired"),
+    trigger: "blur",
+  },
+  timezone: {
+    required: true,
+    message: t("settings.general.validation.timezoneRequired"),
+    trigger: "blur",
+  },
+}));
 
 onMounted(async () => {
   await settingsStore.fetchSettings();
@@ -106,9 +116,9 @@ async function handleSave() {
       timezone: form.value.timezone,
     };
     await settingsStore.saveSettings(updatedSettings);
-    message.success("Saved general settings");
+    message.success(t("settings.general.messages.saved"));
   } catch (e) {
-    message.error(e instanceof Error ? e.message : "Failed to save settings");
+    message.error(e instanceof Error ? e.message : t("settings.general.messages.saveError"));
   } finally {
     saving.value = false;
   }
@@ -123,9 +133,9 @@ function handleThemeChange(value: string) {
 
 <template>
   <div class="general-settings">
-    <NCard title="General Settings" :bordered="false">
+    <NCard :title="t('settings.general.cardTitle')" :bordered="false">
       <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
-        <NFormItem label="Currency" path="currency">
+        <NFormItem :label="t('settings.general.fields.currency')" path="currency">
           <NSelect
             v-model:value="form.currency"
             :options="currencyOptions"
@@ -133,7 +143,7 @@ function handleThemeChange(value: string) {
           />
         </NFormItem>
 
-        <NFormItem label="Default Tax Rate" path="defaultTaxRate">
+        <NFormItem :label="t('settings.general.fields.defaultTaxRate')" path="defaultTaxRate">
           <NInputNumber
             v-model:value="form.defaultTaxRate"
             :min="0"
@@ -141,10 +151,10 @@ function handleThemeChange(value: string) {
             :step="0.01"
             :disabled="saving"
           />
-          <div class="hint">Use decimal, e.g. 0.13 for 13%.</div>
+          <div class="hint">{{ t("settings.general.hints.taxRate") }}</div>
         </NFormItem>
 
-        <NFormItem label="Date Format" path="dateFormat">
+        <NFormItem :label="t('settings.general.fields.dateFormat')" path="dateFormat">
           <NSelect
             v-model:value="form.dateFormat"
             :options="dateFormatOptions"
@@ -152,7 +162,7 @@ function handleThemeChange(value: string) {
           />
         </NFormItem>
 
-        <NFormItem label="Timezone" path="timezone">
+        <NFormItem :label="t('settings.general.fields.timezone')" path="timezone">
           <NSelect
             v-model:value="form.timezone"
             :options="timezoneOptions"
@@ -161,24 +171,24 @@ function handleThemeChange(value: string) {
           />
         </NFormItem>
 
-        <NFormItem label="Theme">
+        <NFormItem :label="t('settings.general.fields.theme')">
           <NSelect
             :value="appStore.theme"
             :options="[
-              { label: 'Light', value: 'light' },
-              { label: 'Dark', value: 'dark' },
+              { label: t('settings.general.options.theme.light'), value: 'light' },
+              { label: t('settings.general.options.theme.dark'), value: 'dark' },
             ]"
             :disabled="saving"
             @update:value="handleThemeChange"
           />
         </NFormItem>
 
-        <NFormItem label="Language">
+        <NFormItem :label="t('settings.general.fields.language')">
           <NSelect
             v-model:value="form.language"
             :options="[
-              { label: 'English', value: 'en-US' },
-              { label: '中文 (简体)', value: 'zh-CN' },
+              { label: t('settings.general.options.language.enUS'), value: 'en-US' },
+              { label: t('settings.general.options.language.zhCN'), value: 'zh-CN' },
             ]"
             :disabled="saving"
             @update:value="(value) => appStore.setLocale(value as 'en-US' | 'zh-CN')"
@@ -187,7 +197,7 @@ function handleThemeChange(value: string) {
 
         <NSpace justify="end" style="margin-top: 24px">
           <NButton type="primary" :loading="saving" @click="handleSave">
-            Save
+            {{ t("common.save") }}
           </NButton>
         </NSpace>
       </NForm>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, onMounted, computed, ref } from 'vue'
 import {
-  NButton, NDataTable, NTag, NSpace, NAvatar, NText, NCard, NGrid, NGridItem,
+  NButton, NDataTable, NTag, NSpace, NAvatar, NText, NCard, NGrid, NGridItem, NIcon,
   type DataTableColumns, useMessage, useDialog
 } from 'naive-ui'
 import PageContainer from '@/components/PageContainer.vue'

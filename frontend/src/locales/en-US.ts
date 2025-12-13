@@ -6,6 +6,7 @@ export default {
     edit: "Edit",
     delete: "Delete",
     save: "Save",
+    saved: "Saved",
     cancel: "Cancel",
     confirm: "Confirm",
     refresh: "Refresh",
@@ -326,7 +327,29 @@ export default {
   // Reports
   reports: {
     title: "Reports",
-    subtitle: "Analytics and insights",
+    subtitle: "Deep insights into your business performance",
+    filters: {
+      dateRange: "Select date range",
+      client: "Client",
+      project: "Project",
+      apply: "Apply",
+    },
+    stats: {
+      totalHours: "Total Hours",
+      totalIncome: "Total Income",
+    },
+    chart: {
+      revenue: "Revenue",
+      hours: "Hours",
+    },
+    table: {
+      date: "Date",
+      client: "Client",
+      project: "Project",
+      hours: "Hours",
+      income: "Income",
+    },
+    empty: "No data for current filters",
   },
 
   // Finance
@@ -427,22 +450,145 @@ export default {
     general: {
       title: "General",
       description: "Language, currency, date format and other preferences",
+      cardTitle: "General Settings",
+      fields: {
+        currency: "Currency",
+        defaultTaxRate: "Default Tax Rate",
+        dateFormat: "Date Format",
+        timezone: "Timezone",
+        theme: "Theme",
+        language: "Language",
+      },
+      hints: {
+        taxRate: "Use decimal, e.g. 0.13 for 13%.",
+      },
+      options: {
+        theme: {
+          light: "Light",
+          dark: "Dark",
+        },
+        language: {
+          enUS: "English",
+          zhCN: "Chinese (Simplified)",
+        },
+        currency: {
+          usd: "US Dollar",
+          cad: "Canadian Dollar",
+          cny: "Chinese Yuan",
+          eur: "Euro",
+        },
+      },
+      validation: {
+        currencyRequired: "Currency is required",
+        dateFormatRequired: "Date format is required",
+        timezoneRequired: "Timezone is required",
+      },
+      messages: {
+        saved: "Saved general settings",
+        saveError: "Failed to save settings",
+      },
     },
     profile: {
       title: "Profile",
       description: "Your personal information and company details",
+      personalCardTitle: "Personal Information",
+      companyCardTitle: "Company Information",
+      fields: {
+        name: "Name",
+        email: "Email",
+        phone: "Phone",
+        company: "Company",
+        address: "Address",
+        postalCode: "Postal Code",
+      },
+      validation: {
+        invalidEmail: "Invalid email format",
+      },
+      messages: {
+        saved: "Saved profile settings",
+        saveError: "Failed to save settings",
+      },
     },
     invoice: {
       title: "Invoice",
       description: "Invoice defaults, terms and header information",
+      defaultsCardTitle: "Invoice Defaults",
+      headerCardTitle: "Invoice Header",
+      fields: {
+        invoiceTerms: "Invoice Terms",
+        defaultMessageTemplate: "Default Message Template",
+        senderName: "Sender Name",
+        senderCompany: "Sender Company",
+        senderAddress: "Sender Address",
+        senderPhone: "Sender Phone",
+        senderEmail: "Sender Email",
+        senderPostalCode: "Sender Postal Code",
+      },
+      defaults: {
+        invoiceTerms: "Due upon receipt",
+        defaultMessageTemplate: "Thank you for your business.",
+      },
+      messages: {
+        saved: "Saved invoice settings",
+        saveError: "Failed to save settings",
+      },
     },
     email: {
       title: "Email",
       description: "Email provider settings and templates",
+      providerCardTitle: "Email Provider",
+      resendCardTitle: "Resend Configuration",
+      smtpCardTitle: "SMTP Configuration",
+      fields: {
+        provider: "Provider",
+        from: "From",
+        replyTo: "Reply-To",
+        subjectTemplate: "Subject Template",
+        bodyTemplate: "Body Template",
+        signature: "Signature",
+        resendApiKey: "Resend API Key",
+        smtpHost: "SMTP Host",
+        smtpPort: "SMTP Port",
+        smtpUsername: "SMTP Username",
+        smtpPassword: "SMTP Password",
+        smtpUseTLS: "Use TLS",
+      },
+      options: {
+        provider: {
+          mailto: "Mailto (default)",
+          resend: "Resend",
+          smtp: "SMTP",
+        },
+      },
+      defaults: {
+        subjectTemplate: "Invoice {{number}}",
+        bodyTemplate: "Please find attached invoice {{number}}.",
+      },
+      messages: {
+        saved: "Saved email settings",
+        saveError: "Failed to save email settings",
+      },
     },
     finance: {
       title: "Finance",
       description: "Finance accounts and transaction settings",
+      fields: {
+        defaultAccount: "Default Account",
+        autoCategorize: "Auto Categorize Transactions",
+        autoReconcile: "Auto Reconcile Accounts",
+      },
+      placeholders: {
+        defaultAccount: "Select default account",
+      },
+      hints: {
+        autoCategorize: "Automatically categorize transactions based on rules",
+        autoReconcile: "Automatically reconcile accounts with bank statements",
+      },
+      messages: {
+        loadError: "Failed to load finance settings",
+        saved: "Finance settings saved",
+        saveError: "Failed to save settings",
+      },
     },
   },
 };

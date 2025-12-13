@@ -142,7 +142,10 @@ const columns: DataTableColumns<Project> = [
               size: 'small',
               quaternary: true,
               circle: true,
-              onClick: () => message.info(t('projects.manage', { name: row.name }))
+              onClick: (e) => {
+                e.stopPropagation()
+                message.info(t('projects.manage', { name: row.name }))
+              }
             },
             { icon: () => h(FolderOpenOutlined) }
           ),
@@ -152,7 +155,10 @@ const columns: DataTableColumns<Project> = [
               size: 'small',
               quaternary: true,
               circle: true,
-              onClick: () => handleEditProject(row)
+              onClick: (e) => {
+                e.stopPropagation()
+                handleEditProject(row)
+              }
             },
             { icon: () => h(EditOutlined) }
           )

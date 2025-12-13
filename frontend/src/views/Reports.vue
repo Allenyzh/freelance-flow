@@ -11,6 +11,7 @@ import {
   NSpace,
   NSpin,
   NStatistic,
+  NPageHeader,
   type DataTableColumns,
 } from "naive-ui";
 import PageContainer from "@/components/PageContainer.vue";
@@ -18,6 +19,11 @@ import { api } from "@/api";
 import type { Client, Project, ReportFilter, ReportOutput, ReportRow } from "@/types";
 import VChart from "vue-echarts";
 import type { EChartsOption } from "echarts";
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+
+const { t } = useI18n();
+const router = useRouter();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -79,118 +85,184 @@ onMounted(async () => {
   await loadReport();
 });
 
-const columns: DataTableColumns<ReportRow> = [
-  { title: "Date", key: "date", width: 120 },
-  { title: "Client", key: "clientName", width: 180 },
-  { title: "Project", key: "projectName", width: 220 },
+const columns = computed<DataTableColumns<ReportRow>>(() => [
+  { title: t("reports.table.date"), key: "date", width: 90 },
+  { title: t("reports.table.client"), key: "clientName", width: 120 },
+  { title: t("reports.table.project"), key: "projectName", ellipsis: true },
   {
-    title: "Hours",
+    title: t("reports.table.hours"),
     key: "hours",
-    width: 100,
+    width: 70,
+    align: "right",
     render: (row) => row.hours.toFixed(1),
   },
   {
-    title: "Income",
+    title: t("reports.table.income"),
     key: "income",
-    width: 120,
+    width: 90,
+    align: "right",
     render: (row) => row.income.toFixed(2),
   },
-];
+]);
 
 const chartOption = computed<EChartsOption>(() => {
   const c = report.value?.chart;
   return {
     tooltip: { trigger: "axis" },
-    legend: { data: ["Revenue", "Hours"] },
+    legend: {
+      data: [t("reports.chart.hours"), t("reports.chart.revenue")],
+      top: 0,
+    },
+    grid: { top: 40, right: 60, bottom: 30, left: 50 },
     xAxis: { type: "category", data: c?.dates ?? [] },
     yAxis: [
-      { type: "value", name: "Revenue" },
-      { type: "value", name: "Hours" },
+      { type: "value", name: t("reports.chart.hours") },
+      { type: "value", name: t("reports.chart.revenue") },
     ],
     series: [
       {
-        name: "Revenue",
-        type: "line",
-        smooth: true,
-        data: c?.revenue ?? [],
-        yAxisIndex: 0,
-      },
-      {
-        name: "Hours",
+        name: t("reports.chart.hours"),
         type: "line",
         smooth: true,
         data: c?.hours ?? [],
+        yAxisIndex: 0,
+        itemStyle: { color: '#2080f0' },
+      },
+      {
+        name: t("reports.chart.revenue"),
+        type: "bar",
+        barMaxWidth: 40,
+        data: c?.revenue ?? [],
         yAxisIndex: 1,
+        itemStyle: { color: '#18a058' },
       },
     ],
   };
 });
+
+// DataTable pagination config - show 5 items per page
+const tablePagination = {
+  pageSize: 5,
+};
 </script>
 
 <template>
-  <PageContainer title="Reports" subtitle="Deep insights into your business performance">
-    <n-card class="filters-card" size="small">
-      <n-space align="center" wrap>
-        <n-date-picker
-          v-model:value="dateRange"
-          type="daterange"
-          clearable
-          placeholder="Select date range"
-        />
-        <n-select
-          v-model:value="selectedClientId"
-          :options="clientOptions"
-          clearable
-          placeholder="Client"
-          style="min-width: 180px"
-        />
-        <n-select
-          v-model:value="selectedProjectId"
-          :options="filteredProjectOptions"
-          clearable
-          placeholder="Project"
-          style="min-width: 200px"
-        />
-        <n-button type="primary" @click="loadReport">Apply</n-button>
-      </n-space>
-    </n-card>
+  <PageContainer :title="t('reports.title')" :subtitle="t('reports.subtitle')">
+    <template #header>
+      <n-page-header :subtitle="t('reports.subtitle')" @back="router.back()">
+        <template #title>
+          {{ t('reports.title') }}
+        </template>
+        <template #extra>
+          <n-space size="large">
+            <n-statistic :label="t('reports.stats.totalHours')">
+              <template #default>
+                {{ report?.totalHours || 0 }}
+              </template>
+            </n-statistic>
+            <n-statistic :label="t('reports.stats.totalIncome')">
+              <template #default>
+                {{ report?.totalIncome || 0 }}
+              </template>
+            </n-statistic>
+          </n-space>
+        </template>
+      </n-page-header>
+    </template>
 
-    <n-spin :show="loading">
-      <n-alert v-if="error" type="error" class="mt16" :title="error" />
-
-      <template v-else>
-        <n-space v-if="report" class="mt16" justify="space-between" wrap>
-          <n-statistic label="Total Hours" :value="report.totalHours" />
-          <n-statistic label="Total Income" :value="report.totalIncome" />
+    <div class="reports-root">
+      <n-card class="filters-card" size="small" :content-style="{ padding: '8px 12px' }">
+        <n-space align="center" :wrap="true" :size="8">
+          <n-date-picker v-model:value="dateRange" type="daterange" clearable size="small"
+            :placeholder="t('reports.filters.dateRange')" class="filter-date" />
+          <n-select v-model:value="selectedClientId" :options="clientOptions" clearable size="small"
+            :placeholder="t('reports.filters.client')" class="filter-select" />
+          <n-select v-model:value="selectedProjectId" :options="filteredProjectOptions" clearable size="small"
+            :placeholder="t('reports.filters.project')" class="filter-select" />
+          <n-button type="primary" size="small" @click="loadReport">
+            {{ t("reports.filters.apply") }}
+          </n-button>
         </n-space>
+      </n-card>
 
-        <n-card v-if="report && report.chart.dates.length" class="mt16">
-          <v-chart :option="chartOption" autoresize style="height: 320px" />
-        </n-card>
+      <div class="reports-body">
+        <div v-if="loading && !report" class="loading-center">
+          <n-spin size="large" />
+        </div>
 
-        <n-empty
-          v-if="report && report.rows.length === 0"
-          class="mt16"
-          description="No data for current filters"
-        />
+        <n-alert v-else-if="error" type="error" :title="error" />
 
-        <n-data-table
-          v-if="report && report.rows.length"
-          class="mt16"
-          :columns="columns"
-          :data="report.rows"
-          :bordered="false"
-        />
-      </template>
-    </n-spin>
+        <template v-else-if="report">
+          <div class="reports-content">
+            <n-card v-if="report.chart.dates.length" size="small" :content-style="{ padding: '8px' }">
+              <v-chart :option="chartOption" autoresize class="report-chart" />
+            </n-card>
+
+            <n-empty v-if="report.rows.length === 0" :description="t('reports.empty')" size="small" />
+
+            <div v-else class="table-wrapper">
+              <n-data-table :columns="columns" :data="report.rows" :bordered="false" :pagination="tablePagination"
+                :loading="loading" size="small" />
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
   </PageContainer>
 </template>
 
 <style scoped>
-.filters-card {
-  margin-top: 8px;
+.reports-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
 }
-.mt16 {
-  margin-top: 16px;
+
+.reports-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.loading-center {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.reports-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.report-chart {
+  height: clamp(180px, 32vh, 320px);
+}
+
+.table-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.filter-date {
+  width: 200px;
+}
+
+.filter-select {
+  width: 140px;
+}
+
+@media (max-width: 520px) {
+
+  .filter-date,
+  .filter-select {
+    width: 100%;
+  }
 }
 </style>

@@ -2,7 +2,7 @@
 import { onMounted, ref, computed, h } from 'vue'
 import {
   NButton, NCard, NTag, NSpace, NText, NEmpty, NIcon,
-  NPopconfirm, NTooltip, NDataTable,
+  NPopconfirm, NDataTable,
   useMessage
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -19,9 +19,6 @@ import {
   ClockCircleOutlined,
   EditOutlined,
   DeleteOutlined,
-
-  LeftOutlined,
-  RightOutlined,
   DownloadOutlined
 } from '@vicons/antd'
 
@@ -35,23 +32,13 @@ const { t, locale } = useI18n()
 const showModal = ref(false)
 const editingEntry = ref<TimeEntry | null>(null)
 
-// Pagination
-const currentPage = ref(1)
-const pageSize = ref(10)
+// Native Pagination
+const pagination = ref({
+  pageSize: 10
+})
 const checkedRowKeys = ref<number[]>([])
 
 // Computed: paginated entries
-const paginatedEntries = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return entries.value.slice(start, end)
-})
-
-const totalPages = computed(() => Math.ceil(entries.value.length / pageSize.value) || 1)
-const showingFrom = computed(() => entries.value.length === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1)
-const showingTo = computed(() => Math.min(currentPage.value * pageSize.value, entries.value.length))
-
-// Table columns
 const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string } }>>(() => [
   {
     type: 'selection',
@@ -61,6 +48,8 @@ const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string
     title: t('timesheet.columns.date'),
     key: 'date',
     width: 120,
+    sorter: (a, b) => getDateTimestamp(a.date) - getDateTimestamp(b.date),
+    defaultSortOrder: 'descend',
     render(row) {
       return formatDate(row.date)
     }
@@ -127,32 +116,34 @@ const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string
     width: 100,
     fixed: 'right',
     render(row) {
-      return h('div', { class: 'action-buttons' }, [
-        h(NTooltip, { trigger: 'hover' }, {
-          trigger: () => h(NButton, {
+      return h(NSpace, { size: 'small', class: 'action-buttons' }, {
+        default: () => [
+          h(NButton, {
             quaternary: true,
             circle: true,
             size: 'tiny',
-            onClick: () => handleEdit(row)
+            onClick: (e) => {
+              e.stopPropagation()
+              handleEdit(row)
+            }
           }, {
             icon: () => h(NIcon, { size: 14 }, () => h(EditOutlined))
           }),
-          default: () => t('timesheet.entry.editEntry')
-        }),
-        h(NPopconfirm, {
-          onPositiveClick: () => handleDelete(row.id)
-        }, {
-          trigger: () => h(NButton, {
-            quaternary: true,
-            circle: true,
-            size: 'tiny',
-            type: 'error'
+          h(NPopconfirm, {
+            onPositiveClick: () => handleDelete(row.id)
           }, {
-            icon: () => h(NIcon, { size: 14 }, () => h(DeleteOutlined))
-          }),
-          default: () => t('timesheet.entry.deleteConfirm')
-        })
-      ])
+            trigger: () => h(NButton, {
+              quaternary: true,
+              circle: true,
+              size: 'tiny',
+              type: 'error'
+            }, {
+              icon: () => h(NIcon, { size: 14 }, () => h(DeleteOutlined))
+            }),
+            default: () => t('timesheet.entry.deleteConfirm')
+          })
+        ]
+      })
     }
   }
 ])
@@ -165,6 +156,11 @@ function formatDate(dateStr: string): string {
     day: 'numeric',
     year: 'numeric'
   }).format(date)
+}
+
+function getDateTimestamp(dateStr: string): number {
+  const ts = new Date(dateStr).getTime()
+  return Number.isFinite(ts) ? ts : 0
 }
 
 function formatHours(seconds: number): string {
@@ -182,15 +178,6 @@ function getProjectColor(projectId: number): string {
 function getProjectRate(projectId: number): number {
   const project = projects.value.find(p => p.id === projectId)
   return project?.hourlyRate || 0
-}
-
-// Pagination handlers
-function prevPage() {
-  if (currentPage.value > 1) currentPage.value--
-}
-
-function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++
 }
 
 // Entry actions
@@ -266,6 +253,10 @@ onMounted(() => {
 <template>
   <PageContainer :title="t('timesheet.title')" :subtitle="t('timesheet.subtitle')">
 
+    <!-- Edit Modal -->
+    <TimesheetFormModal v-model:show="showModal" :entry="editingEntry" :projects="projects"
+      @submit="handleSubmitEntry" />
+
 
     <!-- Time Entries Section -->
     <n-card class="entries-section" :bordered="true" size="small">
@@ -284,12 +275,8 @@ onMounted(() => {
         </div>
       </template>
 
-      <!-- Compact Entry Bar -->
+      <!-- Quick Entry Bar -->
       <QuickTimeEntry :projects="projects" @submit="handleQuickEntry" />
-
-      <!-- Edit Modal -->
-      <TimesheetFormModal v-model:show="showModal" :entry="editingEntry" :projects="projects"
-        @submit="handleSubmitEntry" />
 
       <!-- Data Table -->
       <div v-if="loading" class="loading-state">
@@ -314,35 +301,9 @@ onMounted(() => {
       </div>
 
       <template v-else>
-        <n-data-table :columns="columns" :data="paginatedEntries" :row-key="(row: TimeEntry) => row.id"
+        <n-data-table :columns="columns" :data="entries" :pagination="pagination" :row-key="(row: TimeEntry) => row.id"
           :checked-row-keys="checkedRowKeys" @update:checked-row-keys="handleCheckedRowKeysChange" size="small"
           class="entries-table" />
-
-        <!-- Pagination -->
-        <div class="pagination-bar">
-          <n-text depth="3" class="pagination-info">
-            {{ t('timesheet.entries.showingResults', { from: showingFrom, to: showingTo, total: entries.length }) }}
-          </n-text>
-          <div class="pagination-controls">
-            <n-button quaternary size="small" :disabled="currentPage === 1" @click="prevPage">
-              <template #icon>
-                <n-icon>
-                  <LeftOutlined />
-                </n-icon>
-              </template>
-            </n-button>
-            <n-text class="page-indicator">
-              {{ t('timesheet.entries.pageInfo', { current: currentPage, total: totalPages }) }}
-            </n-text>
-            <n-button quaternary size="small" :disabled="currentPage === totalPages" @click="nextPage">
-              <template #icon>
-                <n-icon>
-                  <RightOutlined />
-                </n-icon>
-              </template>
-            </n-button>
-          </div>
-        </div>
       </template>
     </n-card>
 
@@ -416,55 +377,5 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.entries-table :deep(.n-data-table-tr:hover) .action-buttons {
-  opacity: 1;
-}
-
-/* Pagination Bar */
-.pagination-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--n-divider-color);
-}
-
-.pagination-info {
-  font-size: 0.8rem;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-indicator {
-  font-size: 0.85rem;
-  min-width: 100px;
-  text-align: center;
-}
-
-/* Empty & Loading States */
-.empty-state,
-.loading-state {
-  padding: 48px 24px;
-  text-align: center;
-}
-
-@media (max-width: 768px) {
-  .pagination-bar {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .action-buttons {
-    opacity: 1;
-  }
 }
 </style>

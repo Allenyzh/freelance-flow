@@ -19,11 +19,11 @@
                     Released on {{ formatDate(updateInfo.releaseDate) }}
                 </div>
 
-                <n-scrollbar style="max-height: 300px" class="bg-gray-800/50 p-4 rounded mb-6">
+                <div class="release-notes bg-gray-800/50 p-4 rounded mb-6">
                     <div class="prose prose-invert prose-sm">
                         <pre class="whitespace-pre-wrap font-sans text-gray-300">{{ updateInfo.releaseNotes }}</pre>
                     </div>
-                </n-scrollbar>
+                </div>
             </div>
 
             <!-- Downloading View -->
@@ -83,7 +83,7 @@
 import { computed } from 'vue'
 import { useUpdateStore } from '@/stores/update'
 import { storeToRefs } from 'pinia'
-import { NModal, NButton, NTag, NScrollbar, NProgress } from 'naive-ui'
+import { NModal, NButton, NTag, NProgress } from 'naive-ui'
 
 const store = useUpdateStore()
 const { state, progress } = storeToRefs(store)
@@ -136,3 +136,10 @@ function handleInstall() {
     store.installUpdate()
 }
 </script>
+
+<style scoped>
+.release-notes {
+    max-height: 300px;
+    overflow: auto;
+}
+</style>

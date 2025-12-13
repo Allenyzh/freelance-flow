@@ -9,6 +9,27 @@ import "./style.css";
 import "vfonts/Lato.css";
 import "vfonts/FiraCode.css";
 
+// ECharts global registration for desktop app
+import { use } from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import { LineChart, BarChart } from "echarts/charts";
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+} from "echarts/components";
+
+use([
+  CanvasRenderer,
+  LineChart,
+  BarChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+]);
+
 // Import locale messages
 import { messages } from "./locales";
 

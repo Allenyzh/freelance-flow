@@ -12,9 +12,11 @@ import {
 } from "naive-ui";
 import { useSettingsStore } from "@/stores/settings";
 import type { UserSettings } from "@/types";
+import { useI18n } from "vue-i18n";
 
 const settingsStore = useSettingsStore();
 const message = useMessage();
+const { t } = useI18n();
 
 const formRef = ref<InstanceType<typeof NForm> | null>(null);
 const form = ref<UserSettings>({
@@ -30,8 +32,8 @@ const form = ref<UserSettings>({
   senderPhone: "",
   senderEmail: "",
   senderPostalCode: "",
-  invoiceTerms: "Due upon receipt",
-  defaultMessageTemplate: "Thank you for your business.",
+  invoiceTerms: "",
+  defaultMessageTemplate: "",
 });
 
 const saving = ref(false);
@@ -52,6 +54,12 @@ onMounted(async () => {
       senderEmail: settings.senderEmail,
       senderPostalCode: settings.senderPostalCode,
     };
+  } else {
+    form.value = {
+      ...form.value,
+      invoiceTerms: t("settings.invoice.defaults.invoiceTerms"),
+      defaultMessageTemplate: t("settings.invoice.defaults.defaultMessageTemplate"),
+    };
   }
 });
 
@@ -71,9 +79,9 @@ async function handleSave() {
       senderPostalCode: form.value.senderPostalCode,
     };
     await settingsStore.saveSettings(updatedSettings);
-    message.success("Saved invoice settings");
+    message.success(t("settings.invoice.messages.saved"));
   } catch (e) {
-    message.error(e instanceof Error ? e.message : "Failed to save settings");
+    message.error(e instanceof Error ? e.message : t("settings.invoice.messages.saveError"));
   } finally {
     saving.value = false;
   }
@@ -82,9 +90,9 @@ async function handleSave() {
 
 <template>
   <div class="invoice-settings">
-    <NCard title="Invoice Defaults" :bordered="false">
+    <NCard :title="t('settings.invoice.defaultsCardTitle')" :bordered="false">
       <NForm ref="formRef" label-placement="top">
-        <NFormItem label="Invoice Terms">
+        <NFormItem :label="t('settings.invoice.fields.invoiceTerms')">
           <NInput
             type="textarea"
             v-model:value="form.invoiceTerms"
@@ -93,7 +101,7 @@ async function handleSave() {
           />
         </NFormItem>
 
-        <NFormItem label="Default Message Template">
+        <NFormItem :label="t('settings.invoice.fields.defaultMessageTemplate')">
           <NInput
             type="textarea"
             v-model:value="form.defaultMessageTemplate"
@@ -104,36 +112,36 @@ async function handleSave() {
 
         <NSpace justify="end" style="margin-top: 24px">
           <NButton type="primary" :loading="saving" @click="handleSave">
-            Save
+            {{ t("common.save") }}
           </NButton>
         </NSpace>
       </NForm>
     </NCard>
 
-    <NCard title="Invoice Header" :bordered="false" style="margin-top: 16px">
+    <NCard :title="t('settings.invoice.headerCardTitle')" :bordered="false" style="margin-top: 16px">
       <NForm label-placement="top">
-        <NFormItem label="Sender Name">
+        <NFormItem :label="t('settings.invoice.fields.senderName')">
           <NInput v-model:value="form.senderName" :disabled="saving" />
         </NFormItem>
-        <NFormItem label="Sender Company">
+        <NFormItem :label="t('settings.invoice.fields.senderCompany')">
           <NInput v-model:value="form.senderCompany" :disabled="saving" />
         </NFormItem>
-        <NFormItem label="Sender Address">
+        <NFormItem :label="t('settings.invoice.fields.senderAddress')">
           <NInput v-model:value="form.senderAddress" :disabled="saving" />
         </NFormItem>
-        <NFormItem label="Sender Phone">
+        <NFormItem :label="t('settings.invoice.fields.senderPhone')">
           <NInput v-model:value="form.senderPhone" :disabled="saving" />
         </NFormItem>
-        <NFormItem label="Sender Email">
+        <NFormItem :label="t('settings.invoice.fields.senderEmail')">
           <NInput v-model:value="form.senderEmail" :disabled="saving" />
         </NFormItem>
-        <NFormItem label="Sender Postal Code">
+        <NFormItem :label="t('settings.invoice.fields.senderPostalCode')">
           <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">
           <NButton type="primary" :loading="saving" @click="handleSave">
-            Save
+            {{ t("common.save") }}
           </NButton>
         </NSpace>
       </NForm>

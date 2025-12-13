@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { NModal, NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NTimePicker, NCheckbox, NButton, NSpace, useMessage } from 'naive-ui'
 import type { TimeEntry, Project } from '@/types'
-import type { FormInst, FormRules } from 'naive-ui'
+import type { FormInst } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
@@ -22,12 +22,25 @@ const message = useMessage()
 const { t } = useI18n()
 
 const formRef = ref<FormInst | null>(null)
-const formValue = ref<Omit<TimeEntry, 'id'>>({
+// Local form type that allows null for optional time fields (NTimePicker requires null, not empty string)
+interface TimeEntryFormData {
+  projectId: number
+  invoiceId: number
+  date: string
+  startTime: string | null
+  endTime: string | null
+  durationSeconds: number
+  description: string
+  billable: boolean
+  invoiced: boolean
+}
+
+const formValue = ref<TimeEntryFormData>({
   projectId: 0,
   invoiceId: 0,
   date: new Date().toISOString().split('T')[0] ?? '',
-  startTime: '',
-  endTime: '',
+  startTime: null,
+  endTime: null,
   durationSeconds: 0,
   description: '',
   billable: true,
@@ -50,45 +63,68 @@ const durationHours = computed({
   set: (val: number) => { formValue.value.durationSeconds = Math.round(val * 3600) }
 })
 
+// Watch for modal open to properly initialize form data
+// Watch for entry changes to populate form (handles external updates)
 watch(() => props.entry, (newEntry) => {
   if (newEntry) {
-    formValue.value = {
-      projectId: newEntry.projectId,
-      invoiceId: newEntry.invoiceId || 0,
-      date: newEntry.date,
-      startTime: newEntry.startTime || '',
-      endTime: newEntry.endTime || '',
-      durationSeconds: newEntry.durationSeconds,
-      description: newEntry.description,
-      billable: newEntry.billable,
-      invoiced: newEntry.invoiced
-    }
+    initForm(newEntry)
   } else {
-    formValue.value = {
-      projectId: 0,
-      invoiceId: 0,
-      date: new Date().toISOString().split('T')[0] ?? '',
-      startTime: '',
-      endTime: '',
-      durationSeconds: 0,
-      description: '',
-      billable: true,
-      invoiced: false
-    }
+    resetForm()
   }
 }, { immediate: true })
+
+
+
+function initForm(entry: TimeEntry) {
+  formValue.value = {
+    projectId: entry.projectId,
+    invoiceId: entry.invoiceId || 0,
+    date: entry.date,
+    // NTimePicker requires null (not empty string) for "no value"
+    startTime: entry.startTime || null,
+    endTime: entry.endTime || null,
+    durationSeconds: entry.durationSeconds,
+    description: entry.description,
+    billable: entry.billable,
+    invoiced: entry.invoiced
+  }
+}
+
+function resetForm() {
+  formValue.value = {
+    projectId: 0,
+    invoiceId: 0,
+    date: new Date().toISOString().split('T')[0] ?? '',
+    startTime: null,
+    endTime: null,
+    durationSeconds: 0,
+    description: '',
+    billable: true,
+    invoiced: false
+  }
+}
 
 function handleClose() {
   emit('update:show', false)
 }
 
+function handleUpdateShow(value: boolean) {
+  emit('update:show', value)
+}
+
 function handleSubmit() {
   formRef.value?.validate((errors) => {
     if (!errors) {
+      // Convert null time values back to empty string for backend
+      const submitData = {
+        ...formValue.value,
+        startTime: formValue.value.startTime || '',
+        endTime: formValue.value.endTime || ''
+      }
       if (props.entry) {
-        emit('submit', { ...formValue.value, id: props.entry.id } as TimeEntry)
+        emit('submit', { ...submitData, id: props.entry.id } as TimeEntry)
       } else {
-        emit('submit', formValue.value)
+        emit('submit', submitData as Omit<TimeEntry, 'id'>)
       }
       handleClose()
     } else {
@@ -99,7 +135,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <n-modal :show="show" @update:show="handleClose" preset="card" :style="{ width: '600px' }"
+  <n-modal :show="show" @update:show="handleUpdateShow" preset="card" :style="{ width: '600px' }"
     :title="entry ? t('timesheet.form.editTitle') : t('timesheet.form.createTitle')">
     <n-form ref="formRef" :model="formValue" :rules="rules" label-placement="top"
       require-mark-placement="right-hanging">

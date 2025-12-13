@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { NModal, NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NButton, NSpace, NDynamicInput, useMessage } from 'naive-ui'
+import { NModal, NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NButton, NSpace, NDynamicInput, NText, useMessage } from 'naive-ui'
 import type { Invoice, InvoiceItem, Client } from '@/types'
 import type { FormInst, FormRules } from 'naive-ui'
 
@@ -118,6 +118,10 @@ function handleClose() {
   emit('update:show', false)
 }
 
+function handleUpdateShow(value: boolean) {
+  emit('update:show', value)
+}
+
 function handleSubmit() {
   formRef.value?.validate((errors) => {
     if (!errors) {
@@ -135,7 +139,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <n-modal :show="show" @update:show="handleClose" preset="card" :style="{ width: '700px' }"
+  <n-modal :show="show" @update:show="handleUpdateShow" preset="card" :style="{ width: '700px' }"
     :title="invoice ? 'Edit Invoice' : 'New Invoice'">
     <n-form ref="formRef" :model="formValue" :rules="rules" label-placement="top"
       require-mark-placement="right-hanging">

@@ -6,6 +6,7 @@ export default {
     edit: "编辑",
     delete: "删除",
     save: "保存",
+    saved: "已保存",
     cancel: "取消",
     confirm: "确认",
     refresh: "刷新",
@@ -324,7 +325,29 @@ export default {
   // 报表
   reports: {
     title: "报表",
-    subtitle: "数据分析与洞察",
+    subtitle: "深入了解您的业务表现",
+    filters: {
+      dateRange: "选择日期范围",
+      client: "客户",
+      project: "项目",
+      apply: "应用",
+    },
+    stats: {
+      totalHours: "总工时",
+      totalIncome: "总收入",
+    },
+    chart: {
+      revenue: "收入",
+      hours: "工时",
+    },
+    table: {
+      date: "日期",
+      client: "客户",
+      project: "项目",
+      hours: "工时",
+      income: "收入",
+    },
+    empty: "当前筛选条件下暂无数据",
   },
 
   // 财务
@@ -425,22 +448,145 @@ export default {
     general: {
       title: "通用",
       description: "语言、货币、日期格式和其他偏好设置",
+      cardTitle: "通用设置",
+      fields: {
+        currency: "货币",
+        defaultTaxRate: "默认税率",
+        dateFormat: "日期格式",
+        timezone: "时区",
+        theme: "主题",
+        language: "语言",
+      },
+      hints: {
+        taxRate: "使用小数，例如 0.13 表示 13%。",
+      },
+      options: {
+        theme: {
+          light: "浅色",
+          dark: "深色",
+        },
+        language: {
+          enUS: "English",
+          zhCN: "中文（简体）",
+        },
+        currency: {
+          usd: "美元",
+          cad: "加元",
+          cny: "人民币",
+          eur: "欧元",
+        },
+      },
+      validation: {
+        currencyRequired: "请选择货币",
+        dateFormatRequired: "请选择日期格式",
+        timezoneRequired: "请选择时区",
+      },
+      messages: {
+        saved: "已保存通用设置",
+        saveError: "保存设置失败",
+      },
     },
     profile: {
       title: "个人资料",
       description: "您的个人信息和公司详细信息",
+      personalCardTitle: "个人信息",
+      companyCardTitle: "公司信息",
+      fields: {
+        name: "姓名",
+        email: "邮箱",
+        phone: "电话",
+        company: "公司",
+        address: "地址",
+        postalCode: "邮编",
+      },
+      validation: {
+        invalidEmail: "邮箱格式不正确",
+      },
+      messages: {
+        saved: "已保存个人资料设置",
+        saveError: "保存设置失败",
+      },
     },
     invoice: {
       title: "发票",
       description: "发票默认设置、条款和抬头信息",
+      defaultsCardTitle: "发票默认设置",
+      headerCardTitle: "发票抬头",
+      fields: {
+        invoiceTerms: "发票条款",
+        defaultMessageTemplate: "默认邮件模板",
+        senderName: "发件人姓名",
+        senderCompany: "发件人公司",
+        senderAddress: "发件人地址",
+        senderPhone: "发件人电话",
+        senderEmail: "发件人邮箱",
+        senderPostalCode: "发件人邮编",
+      },
+      defaults: {
+        invoiceTerms: "收到即付",
+        defaultMessageTemplate: "感谢您的合作。",
+      },
+      messages: {
+        saved: "已保存发票设置",
+        saveError: "保存设置失败",
+      },
     },
     email: {
       title: "邮件",
       description: "邮件提供商设置和模板",
+      providerCardTitle: "邮件服务",
+      resendCardTitle: "Resend 配置",
+      smtpCardTitle: "SMTP 配置",
+      fields: {
+        provider: "提供商",
+        from: "发件人",
+        replyTo: "回复地址",
+        subjectTemplate: "主题模板",
+        bodyTemplate: "正文模板",
+        signature: "签名",
+        resendApiKey: "Resend API Key",
+        smtpHost: "SMTP 主机",
+        smtpPort: "SMTP 端口",
+        smtpUsername: "SMTP 用户名",
+        smtpPassword: "SMTP 密码",
+        smtpUseTLS: "启用 TLS",
+      },
+      options: {
+        provider: {
+          mailto: "Mailto（默认）",
+          resend: "Resend",
+          smtp: "SMTP",
+        },
+      },
+      defaults: {
+        subjectTemplate: "发票 {{number}}",
+        bodyTemplate: "请查收附件中的发票 {{number}}。",
+      },
+      messages: {
+        saved: "已保存邮件设置",
+        saveError: "保存邮件设置失败",
+      },
     },
     finance: {
       title: "财务",
       description: "财务账户和交易设置",
+      fields: {
+        defaultAccount: "默认账户",
+        autoCategorize: "自动分类交易",
+        autoReconcile: "自动对账",
+      },
+      placeholders: {
+        defaultAccount: "选择默认账户",
+      },
+      hints: {
+        autoCategorize: "根据规则自动为交易归类",
+        autoReconcile: "与银行对账单自动对账",
+      },
+      messages: {
+        loadError: "加载财务设置失败",
+        saved: "财务设置已保存",
+        saveError: "保存设置失败",
+      },
     },
   },
 };
