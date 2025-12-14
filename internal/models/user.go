@@ -18,20 +18,21 @@ type User struct {
 
 // UserSettings defines the structure for the SettingsJSON field
 type UserSettings struct {
-	Currency               string  `json:"currency"`
-	DefaultTaxRate         float64 `json:"defaultTaxRate"`
-	Language               string  `json:"language"`
-	Theme                  string  `json:"theme"`
-	DateFormat             string  `json:"dateFormat"`
-	Timezone               string  `json:"timezone"`
-	SenderName             string  `json:"senderName"`
-	SenderCompany          string  `json:"senderCompany"`
-	SenderAddress          string  `json:"senderAddress"`
-	SenderPhone            string  `json:"senderPhone"`
-	SenderEmail            string  `json:"senderEmail"`
-	SenderPostalCode       string  `json:"senderPostalCode"`
-	InvoiceTerms           string  `json:"invoiceTerms"`
-	DefaultMessageTemplate string  `json:"defaultMessageTemplate"`
+	Currency               string          `json:"currency"`
+	DefaultTaxRate         float64         `json:"defaultTaxRate"`
+	Language               string          `json:"language"`
+	Theme                  string          `json:"theme"`
+	DateFormat             string          `json:"dateFormat"`
+	Timezone               string          `json:"timezone"`
+	SenderName             string          `json:"senderName"`
+	SenderCompany          string          `json:"senderCompany"`
+	SenderAddress          string          `json:"senderAddress"`
+	SenderPhone            string          `json:"senderPhone"`
+	SenderEmail            string          `json:"senderEmail"`
+	SenderPostalCode       string          `json:"senderPostalCode"`
+	InvoiceTerms           string          `json:"invoiceTerms"`
+	DefaultMessageTemplate string          `json:"defaultMessageTemplate"`
+	ModuleOverrides        map[string]bool `json:"moduleOverrides,omitempty"`
 	// HST (Harmonized Sales Tax) settings for Canadian self-employed
 	HstRegistered  bool   `json:"hstRegistered"`  // Whether user has registered for HST
 	HstNumber      string `json:"hstNumber"`      // HST Registration Number (e.g. 12345 6789 RT0001)

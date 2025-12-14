@@ -41,7 +41,7 @@ describe("Register view", () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("auth.createAccount");
+    expect(wrapper.text()).toContain("auth.stepProfile");
     expect(
       wrapper.find('input[placeholder*="auth.usernamePlaceholder"]').exists()
     ).toBe(true);
@@ -58,10 +58,18 @@ describe("Register view", () => {
     expect(hasAvatar).toBe(true);
   });
 
-  it("validates password confirmation - passwords do not match", async () => {
+  it("does not advance when passwords mismatch", async () => {
     const wrapper = mountView(Register, { global: { stubs: ["router-link"] } });
 
     await flushPromises();
+
+    const nextButton1 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton1?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("auth.setPassword");
 
     const passwordInput = wrapper.findAll('input[type="password"]').at(0);
     const confirmInput = wrapper.findAll('input[type="password"]').at(1);
@@ -71,7 +79,13 @@ describe("Register view", () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("auth.passwordsNotMatch");
+    const nextButton2 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton2?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("auth.setPassword");
   });
 
   it("registers successfully with valid form", async () => {
@@ -83,14 +97,30 @@ describe("Register view", () => {
     await wrapper
       .find('input[placeholder*="auth.usernamePlaceholder"]')
       .setValue("newuser");
-    const passwordInputs = wrapper.findAll('input[type="password"]');
-    await passwordInputs.at(0)?.setValue("password123");
-    await passwordInputs.at(1)?.setValue("password123");
 
     await flushPromises();
 
-    const submitButton = wrapper.find(".submit-button");
-    await submitButton.trigger("click");
+    const nextButton1 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton1?.trigger("click");
+    await flushPromises();
+
+    const passwordInputs = wrapper.findAll('input[type="password"]');
+    await passwordInputs.at(0)?.setValue("password123");
+    await passwordInputs.at(1)?.setValue("password123");
+    await flushPromises();
+
+    const nextButton2 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton2?.trigger("click");
+    await flushPromises();
+
+    const submitButton = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("auth.createProfile"));
+    await submitButton?.trigger("click");
 
     await flushPromises();
 
@@ -117,37 +147,62 @@ describe("Register view", () => {
     await wrapper
       .find('input[placeholder*="auth.usernamePlaceholder"]')
       .setValue("existinguser");
+
+    const nextButton1 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton1?.trigger("click");
+    await flushPromises();
+
     const passwordInputs = wrapper.findAll('input[type="password"]');
     await passwordInputs.at(0)?.setValue("password123");
     await passwordInputs.at(1)?.setValue("password123");
 
-    const submitButton = wrapper.find(".submit-button");
-    await submitButton.trigger("click");
+    const nextButton2 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton2?.trigger("click");
+    await flushPromises();
+
+    const submitButton = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("auth.createProfile"));
+    await submitButton?.trigger("click");
 
     await flushPromises();
 
     expect(wrapper.text()).toContain("Username already exists");
   });
 
-  it("disables submit button when form is invalid", async () => {
+  it("shows final submit button on step 3", async () => {
     const wrapper = mountView(Register, { global: { stubs: ["router-link"] } });
 
     await flushPromises();
-
-    const submitButton = wrapper.find(".submit-button");
-    expect(submitButton.attributes("disabled")).toBeDefined();
 
     // Fill valid form
     await wrapper
       .find('input[placeholder*="auth.usernamePlaceholder"]')
       .setValue("validuser");
+    const nextButton1 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton1?.trigger("click");
+    await flushPromises();
+
     const passwordInputs = wrapper.findAll('input[type="password"]');
     await passwordInputs.at(0)?.setValue("password123");
     await passwordInputs.at(1)?.setValue("password123");
 
+    const nextButton2 = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("common.next"));
+    await nextButton2?.trigger("click");
     await flushPromises();
 
-    expect(submitButton.attributes("disabled")).toBeUndefined();
+    const submitButton = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("auth.createProfile"));
+    expect(submitButton).toBeTruthy();
   });
 
 });

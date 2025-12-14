@@ -8,23 +8,18 @@ import { RouterView, useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useStatusBarStore } from '@/stores/statusBar'
+import { useSettingsStore } from '@/stores/settings'
 import { useI18n } from 'vue-i18n'
 import type { MenuOption, DropdownOption } from 'naive-ui'
 import {
-    DashboardOutlined,
-    UserOutlined,
-    ProjectOutlined,
-    ClockCircleOutlined,
-    FileTextOutlined,
-    BarChartOutlined,
-    WalletOutlined,
-    SettingOutlined,
     GlobalOutlined,
     BulbOutlined,
     BulbFilled,
     LogoutOutlined,
     SwapOutlined
 } from '@vicons/antd'
+import { allModules, isModuleEnabled, isModuleIDEnabled, normalizeModuleOverrides } from '@/modules/registry'
+import type { ModuleNavItem } from '@/modules/types'
 
 function renderIcon(icon: Component) {
     return () => h(NIcon, null, { default: () => h(icon) })
@@ -35,75 +30,41 @@ const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const statusBarStore = useStatusBarStore()
+const settingsStore = useSettingsStore()
 const { t } = useI18n()
 
-// Menu options using i18n
-const menuOptions = computed<MenuOption[]>(() => [
-    { label: t('nav.dashboard'), key: 'dashboard', icon: renderIcon(DashboardOutlined) },
-    { label: t('nav.clients'), key: 'clients', icon: renderIcon(UserOutlined) },
-    { label: t('nav.projects'), key: 'projects', icon: renderIcon(ProjectOutlined) },
-    { label: t('nav.timesheet'), key: 'timesheet', icon: renderIcon(ClockCircleOutlined) },
-    { label: t('nav.invoices'), key: 'invoices', icon: renderIcon(FileTextOutlined) },
-    { label: t('nav.reports'), key: 'reports', icon: renderIcon(BarChartOutlined) },
-    {
-        label: t('nav.finance'),
-        key: 'finance',
-        icon: renderIcon(WalletOutlined),
-        children: [
-            {
-                label: t('finance.nav.overview'),
-                key: 'finance/overview',
-            },
-            {
-                label: t('finance.nav.accounts'),
-                key: 'finance/accounts',
-            },
-            {
-                label: t('finance.nav.transactions'),
-                key: 'finance/transactions',
-            },
-            {
-                label: t('finance.nav.import'),
-                key: 'finance/import',
-            },
-            {
-                label: t('finance.nav.categories'),
-                key: 'finance/categories',
-            },
-            {
-                label: t('finance.nav.reports'),
-                key: 'finance/reports',
-            },
-        ],
-    },
-    {
-        label: t('nav.settings'),
-        key: 'settings',
-        icon: renderIcon(SettingOutlined),
-        children: [
-            {
-                label: t('settings.general.title'),
-                key: 'settings/general',
-            },
-            {
-                label: t('settings.profile.title'),
-                key: 'settings/profile',
-            },
-            {
-                label: t('settings.invoice.title'),
-                key: 'settings/invoice',
-            },
-            {
-                label: t('settings.email.title'),
-                key: 'settings/email',
-            },
-            {
-                label: t('settings.finance.title'),
-                key: 'settings/finance',
-            },
-        ],
-    },
-])
+function isNavItemEnabled(item: ModuleNavItem, overrides: Record<string, boolean> | null): boolean {
+    return !item.moduleID || isModuleIDEnabled(item.moduleID, overrides)
+}
+
+function toMenuOption(item: ModuleNavItem, overrides: Record<string, boolean> | null): MenuOption | null {
+    if (!isNavItemEnabled(item, overrides)) return null
+    const option: MenuOption = {
+        label: t(item.labelKey),
+        key: item.key,
+    }
+    if (item.icon) {
+        option.icon = renderIcon(item.icon)
+    }
+    if (item.children && item.children.length > 0) {
+        const children = item.children
+            .map((c) => toMenuOption(c, overrides))
+            .filter((v): v is MenuOption => v !== null)
+        if (children.length > 0) {
+            option.children = children
+        }
+    }
+    return option
+}
+
+const menuOptions = computed<MenuOption[]>(() => {
+    const overrides = normalizeModuleOverrides(settingsStore.settings?.moduleOverrides)
+    return allModules
+        .filter((m) => m.nav)
+        .filter((m) => isModuleEnabled(m, { moduleOverrides: overrides }))
+        .map((m) => toMenuOption(m.nav!, overrides))
+        .filter((v): v is MenuOption => v !== null)
+})
 
 const activeKey = ref<string>(route.path.substring(1) || 'dashboard')
 const collapsed = ref(false)
@@ -145,8 +106,7 @@ function handleUserMenuSelect(key: string) {
 
 watch(() => route.path, (newPath) => {
     // Update active menu key based on path
-    const key = newPath.substring(1).split('/')[0] // Get first segment
-    activeKey.value = key || 'dashboard'
+    activeKey.value = newPath.substring(1) || 'dashboard'
 })
 
 function handleMenuUpdate(key: string) {

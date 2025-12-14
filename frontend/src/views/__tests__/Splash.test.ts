@@ -40,7 +40,7 @@ describe("Splash view", () => {
   });
 
   it("initializes auth store on mount", async () => {
-    const wrapper = mountView(Splash, { global: { stubs: ["router-link"] } });
+    mountView(Splash, { global: { stubs: ["router-link"] } });
 
     await flushPromises();
 

@@ -578,6 +578,16 @@ export default {
         saved: "Saved general settings",
         saveError: "Failed to save settings",
       },
+      modules: {
+        title: "Modules",
+        hints: {
+          none: "No optional modules available.",
+        },
+        messages: {
+          saved: "Saved module settings",
+          saveError: "Failed to save module settings",
+        },
+      },
     },
     profile: {
       title: "Profile",

@@ -576,6 +576,16 @@ export default {
         saved: "已保存通用设置",
         saveError: "保存设置失败",
       },
+      modules: {
+        title: "模块",
+        hints: {
+          none: "暂无可选模块。",
+        },
+        messages: {
+          saved: "已保存模块设置",
+          saveError: "保存模块设置失败",
+        },
+      },
     },
     profile: {
       title: "个人资料",

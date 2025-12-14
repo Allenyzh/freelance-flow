@@ -3,7 +3,24 @@ import { createPinia } from "pinia";
 import type { Component } from "vue";
 
 const naiveStubs = {
-  NForm: { template: "<form><slot /></form>" },
+  NForm: {
+    props: ["model", "rules"],
+    template: "<form><slot /></form>",
+    methods: {
+      validate() {
+        const maybeModel = this.model as Record<string, unknown> | undefined;
+        const maybeRules = this.rules as Record<string, unknown> | undefined;
+        const passwordRulePresent =
+          !!maybeRules && Object.prototype.hasOwnProperty.call(maybeRules, "password");
+
+        const password = maybeModel?.password;
+        if (passwordRulePresent && typeof password === "string" && password.trim() === "") {
+          return Promise.reject(new Error("validation failed"));
+        }
+        return Promise.resolve();
+      },
+    },
+  },
   NFormItem: {
     props: ["label"],
     template:
@@ -66,6 +83,9 @@ const naiveStubs = {
   },
   NCard: {
     template: '<div class="n-card"><slot /></div>',
+  },
+  NText: {
+    template: '<span class="n-text"><slot /></span>',
   },
   NEmpty: {
     template: '<div class="n-empty"><slot /></div>',

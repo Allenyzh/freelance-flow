@@ -17,6 +17,9 @@ const mockApi = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api", () => ({ api: mockApi }));
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 describe("Reports view", () => {
   beforeEach(() => {
@@ -36,7 +39,7 @@ describe("Reports view", () => {
     await flushPromises();
 
     expect(mockApi.reports.get).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).toContain("Reports");
+    expect(wrapper.text()).toContain("reports.title");
   });
 
   it("shows error state when api fails", async () => {
@@ -61,7 +64,7 @@ describe("Reports view", () => {
 
     const buttons = wrapper.findAll("button");
     const apply = buttons.find(
-      (b) => b.text() === "Apply" || b.text().includes("common.apply")
+      (b) => b.text().includes("reports.filters.apply")
     );
     await apply?.trigger("click");
     await flushPromises();

@@ -49,7 +49,7 @@ describe("UserSettings view", () => {
     vm.formRef = { validate: async () => undefined };
 
     const buttons = wrapper.findAll("button");
-    const save = buttons.find((b) => b.text() === "Save");
+    const save = buttons.find((b) => b.text() === "common.save");
     await save?.trigger("click");
     await flushPromises();
 

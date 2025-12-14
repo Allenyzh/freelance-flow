@@ -60,6 +60,23 @@ func normalizeUserSettings(settings models.UserSettings) models.UserSettings {
 	trim := func(value string) string {
 		return strings.TrimSpace(value)
 	}
+	normalizeModuleOverrides := func(values map[string]bool) map[string]bool {
+		if len(values) == 0 {
+			return nil
+		}
+		out := make(map[string]bool, len(values))
+		for k, v := range values {
+			k = trim(k)
+			if k == "" {
+				continue
+			}
+			out[k] = v
+		}
+		if len(out) == 0 {
+			return nil
+		}
+		return out
+	}
 
 	if settings.Currency == "" {
 		settings.Currency = "USD"
@@ -88,6 +105,7 @@ func normalizeUserSettings(settings models.UserSettings) models.UserSettings {
 	settings.SenderPostalCode = trim(settings.SenderPostalCode)
 	settings.InvoiceTerms = trim(settings.InvoiceTerms)
 	settings.DefaultMessageTemplate = trim(settings.DefaultMessageTemplate)
+	settings.ModuleOverrides = normalizeModuleOverrides(settings.ModuleOverrides)
 
 	// Normalize HST fields
 	settings.HstNumber = trim(settings.HstNumber)

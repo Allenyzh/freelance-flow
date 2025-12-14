@@ -194,7 +194,10 @@ describe("Login view", () => {
 
     const buttons = wrapper.findAll("button");
     const loginButton = buttons.find((b) => b.text().includes("auth.login"));
-    expect(loginButton?.attributes("disabled")).toBeDefined();
+    await loginButton?.trigger("click");
+    await flushPromises();
+
+    expect(mockAuthStore.login).not.toHaveBeenCalled();
 
     // Enter password
     const passwordInput = wrapper.find('input[type="password"]');
@@ -202,7 +205,9 @@ describe("Login view", () => {
 
     await flushPromises();
 
-    // Button should be enabled now
-    expect(loginButton?.attributes("disabled")).toBeUndefined();
+    await loginButton?.trigger("click");
+    await flushPromises();
+
+    expect(mockAuthStore.login).toHaveBeenCalledTimes(1);
   });
 });

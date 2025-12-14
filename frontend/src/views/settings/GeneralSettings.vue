@@ -7,6 +7,7 @@ import {
   NInputNumber,
   NSpace,
   NButton,
+  NSwitch,
   useMessage,
   NCard,
 } from "naive-ui";
@@ -14,6 +15,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { useAppStore } from "@/stores/app";
 import type { UserSettings } from "@/types";
 import { useI18n } from "vue-i18n";
+import { allModules } from "@/modules/registry";
+import type { ModuleID } from "@/modules/types";
 
 const settingsStore = useSettingsStore();
 const appStore = useAppStore();
@@ -82,6 +85,38 @@ const rules = computed(() => ({
     trigger: "blur",
   },
 }));
+
+const toggleableModules = computed<Array<{ id: ModuleID; labelKey: string }>>(() => {
+  return allModules
+    .filter((m) => m.toggleable)
+    .filter((m) => m.nav)
+    .map((m) => ({ id: m.id, labelKey: m.nav!.labelKey }));
+});
+
+function isModuleEnabled(moduleID: ModuleID): boolean {
+  const overrides = settingsStore.settings?.moduleOverrides;
+  if (overrides && overrides[moduleID] !== undefined) {
+    return overrides[moduleID] === true;
+  }
+  const mod = allModules.find((m) => m.id === moduleID);
+  return mod ? mod.enabledByDefault : true;
+}
+
+async function setModuleEnabled(moduleID: ModuleID, enabled: boolean) {
+  const currentSettings = settingsStore.settings;
+  if (!currentSettings) {
+    message.error(t("settings.general.messages.loadError"));
+    return;
+  }
+  const nextOverrides = { ...currentSettings.moduleOverrides, [moduleID]: enabled };
+
+  try {
+    await settingsStore.saveSettings({ ...currentSettings, moduleOverrides: nextOverrides });
+    message.success(t("settings.general.modules.messages.saved"));
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : t("settings.general.modules.messages.saveError"));
+  }
+}
 
 onMounted(async () => {
   await settingsStore.fetchSettings();
@@ -179,6 +214,20 @@ function handleThemeChange(value: string) {
             {{ t("common.save") }}
           </NButton>
         </NSpace>
+      </NForm>
+    </NCard>
+
+    <NCard style="margin-top: 16px" :title="t('settings.general.modules.title')" :bordered="false">
+      <div v-if="toggleableModules.length === 0" class="hint">
+        {{ t("settings.general.modules.hints.none") }}
+      </div>
+      <NForm v-else label-placement="left" label-width="200">
+        <NFormItem v-for="m in toggleableModules" :key="m.id" :label="t(m.labelKey)">
+          <NSwitch
+            :value="isModuleEnabled(m.id)"
+            @update:value="(v) => setModuleEnabled(m.id, v)"
+          />
+        </NFormItem>
       </NForm>
     </NCard>
   </div>

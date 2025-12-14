@@ -8,6 +8,12 @@ const mockApi = vi.hoisted(() => ({
   projects: {
     list: vi.fn<[], Promise<Project[]>>(),
   },
+  statusBar: {
+    get: vi.fn<
+      [],
+      Promise<{ monthSeconds: number; uninvoicedTotal: number; unpaidTotal: number; currency: string }>
+    >(),
+  },
   timeEntries: {
     list: vi.fn<[], Promise<TimeEntry[]>>(),
     create: vi.fn<[Omit<TimeEntry, "id">], Promise<TimeEntry>>(),
@@ -17,16 +23,6 @@ const mockApi = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api", () => ({ api: mockApi }));
-
-// Mock TimeTracker component
-vi.mock("@/components/TimeTracker.vue", () => ({
-  default: {
-    name: "TimeTracker",
-    props: ["projects"],
-    emits: ["stop"],
-    template: '<div class="timer-bar" data-test="timer-bar"><button @click="$emit(\'stop\', {projectId: 1, description: \'Test\', durationSeconds: 3600})">Stop Timer</button></div>',
-  },
-}));
 
 // Mock QuickTimeEntry component
 vi.mock("@/components/QuickTimeEntry.vue", () => ({
@@ -89,6 +85,12 @@ describe("Timesheet view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockApi.projects.list.mockResolvedValue(mockProjects);
+    mockApi.statusBar.get.mockResolvedValue({
+      monthSeconds: 0,
+      uninvoicedTotal: 0,
+      unpaidTotal: 0,
+      currency: "USD",
+    });
     mockApi.timeEntries.list.mockResolvedValue(mockEntries);
   });
 
@@ -100,7 +102,6 @@ describe("Timesheet view", () => {
     expect(mockApi.timeEntries.list).toHaveBeenCalled();
     expect(mockApi.projects.list).toHaveBeenCalled();
     expect(wrapper.text()).toContain("timesheet.title");
-    expect(wrapper.find('[data-test="timer-bar"]').exists()).toBe(true);
     expect(wrapper.find('[data-test="quick-entry"]').exists()).toBe(true);
   });
 
@@ -141,31 +142,6 @@ describe("Timesheet view", () => {
         projectId: 1,
         description: "Quick Entry",
         durationSeconds: 7200,
-        billable: true,
-        invoiced: false,
-      })
-    );
-  });
-
-  it("handles timer stop event", async () => {
-    const wrapper = mountView(Timesheet);
-
-    await flushPromises();
-
-    const tracker = wrapper.findComponent({ name: "TimeTracker" });
-    tracker.vm.$emit("stop", {
-      projectId: 1,
-      description: "Timer Task",
-      durationSeconds: 3600,
-    });
-
-    await flushPromises();
-
-    expect(mockApi.timeEntries.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        projectId: 1,
-        description: "Timer Task",
-        durationSeconds: 3600,
         billable: true,
         invoiced: false,
       })

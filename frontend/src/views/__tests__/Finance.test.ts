@@ -45,7 +45,7 @@ describe("Finance view", () => {
   });
 
   it("loads finance summary on mount", async () => {
-    const wrapper = mountView(FinanceOverview);
+    mountView(FinanceOverview);
 
     await flushPromises();
 

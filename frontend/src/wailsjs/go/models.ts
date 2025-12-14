@@ -769,6 +769,7 @@ export namespace dto {
 	    senderPostalCode: string;
 	    invoiceTerms: string;
 	    defaultMessageTemplate: string;
+	    moduleOverrides?: Record<string, boolean>;
 	    hstRegistered: boolean;
 	    hstNumber: string;
 	    taxEnabled: boolean;
@@ -794,6 +795,7 @@ export namespace dto {
 	        this.senderPostalCode = source["senderPostalCode"];
 	        this.invoiceTerms = source["invoiceTerms"];
 	        this.defaultMessageTemplate = source["defaultMessageTemplate"];
+	        this.moduleOverrides = source["moduleOverrides"];
 	        this.hstRegistered = source["hstRegistered"];
 	        this.hstNumber = source["hstNumber"];
 	        this.taxEnabled = source["taxEnabled"];

@@ -55,7 +55,7 @@ describe("FinanceSettings view", () => {
   });
 
   it("loads accounts on mount", async () => {
-    const wrapper = mountView(FinanceSettings);
+    mountView(FinanceSettings);
 
     await flushPromises();
 
@@ -63,7 +63,7 @@ describe("FinanceSettings view", () => {
   });
 
   it("loads settings on mount", async () => {
-    const wrapper = mountView(FinanceSettings);
+    mountView(FinanceSettings);
 
     await flushPromises();
 

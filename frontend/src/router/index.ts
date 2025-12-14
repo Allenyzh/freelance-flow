@@ -1,5 +1,9 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { allModules } from "@/modules/registry";
+import type { ModuleID } from "@/modules/types";
+import { useSettingsStore } from "@/stores/settings";
+import { isModuleIDEnabled, normalizeModuleOverrides } from "@/modules/registry";
 
 // Auth views (no lazy loading for faster initial load)
 import Splash from "@/views/Splash.vue";
@@ -26,103 +30,8 @@ const routes = [
     meta: { requiresAuth: false, layout: "auth" },
   },
 
-  // Main app routes (auth required)
-  {
-    path: "/dashboard",
-    component: () => import("@/views/Dashboard.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/clients",
-    component: () => import("@/views/Clients.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/projects",
-    component: () => import("@/views/Projects.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/timesheet",
-    component: () => import("@/views/Timesheet.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/invoices",
-    component: () => import("@/views/Invoices.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/reports",
-    component: () => import("@/views/Reports.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-  },
-  {
-    path: "/finance",
-    component: () => import("@/views/finance/FinanceLayout.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-    children: [
-      {
-        path: "",
-        redirect: "/finance/overview",
-      },
-      {
-        path: "overview",
-        component: () => import("@/views/finance/index.vue"),
-      },
-      {
-        path: "accounts",
-        component: () => import("@/views/finance/accounts/index.vue"),
-      },
-      {
-        path: "transactions",
-        component: () => import("@/views/finance/transactions/index.vue"),
-      },
-      {
-        path: "import",
-        component: () => import("@/views/finance/import/index.vue"),
-      },
-      {
-        path: "categories",
-        component: () => import("@/views/finance/categories/index.vue"),
-      },
-      {
-        path: "reports",
-        component: () => import("@/views/finance/reports/index.vue"),
-      },
-    ],
-  },
-  {
-    path: "/settings",
-    component: () => import("@/views/settings/SettingsLayout.vue"),
-    meta: { requiresAuth: true, layout: "main" },
-    children: [
-      {
-        path: "",
-        redirect: "/settings/general",
-      },
-      {
-        path: "general",
-        component: () => import("@/views/settings/GeneralSettings.vue"),
-      },
-      {
-        path: "profile",
-        component: () => import("@/views/settings/ProfileSettings.vue"),
-      },
-      {
-        path: "invoice",
-        component: () => import("@/views/settings/InvoiceSettings.vue"),
-      },
-      {
-        path: "email",
-        component: () => import("@/views/settings/EmailSettings.vue"),
-      },
-      {
-        path: "finance",
-        component: () => import("@/views/settings/FinanceSettings.vue"),
-      },
-    ],
-  },
+  // Main app routes (auth required) are provided by module registry
+  ...allModules.flatMap((m) => m.routes),
 ];
 
 const router = createRouter({
@@ -141,6 +50,7 @@ router.afterEach((to) => {
 // Navigation guard
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
+  const settingsStore = useSettingsStore();
 
   // If route requires auth and user is not authenticated
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -161,6 +71,17 @@ router.beforeEach((to, _from, next) => {
   ) {
     next("/dashboard");
   } else {
+    const moduleID = to.matched
+      .map((r) => r.meta?.moduleID as ModuleID | undefined)
+      .find((v) => v !== undefined);
+
+    if (to.meta.requiresAuth && moduleID) {
+      const overrides = normalizeModuleOverrides(settingsStore.settings?.moduleOverrides);
+      if (!isModuleIDEnabled(moduleID, overrides)) {
+        next("/dashboard");
+        return;
+      }
+    }
     next();
   }
 });

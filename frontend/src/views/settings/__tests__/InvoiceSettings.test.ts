@@ -51,16 +51,18 @@ describe("EmailSettings view", () => {
   it("shows provider options", async () => {
     const wrapper = mountView(EmailSettings);
     await flushPromises();
-    expect(wrapper.text()).toContain("Mailto");
-    expect(wrapper.text()).toContain("Resend");
-    expect(wrapper.text()).toContain("SMTP");
+    expect(wrapper.text()).toContain("settings.email.options.provider.mailto");
+    expect(wrapper.text()).toContain("settings.email.options.provider.resend");
+    expect(wrapper.text()).toContain("settings.email.options.provider.smtp");
   });
 
   it("saves settings successfully", async () => {
     const wrapper = mountView(EmailSettings);
     await flushPromises();
 
-    const subjectInput = wrapper.find('input[value*="Invoice {{number}}"]');
+    const subjectInput = wrapper.find(
+      'input[value*="settings.email.defaults.subjectTemplate"]'
+    );
     await subjectInput.setValue("Custom Subject {{number}}");
 
     const saveButton = wrapper.find("button");
@@ -70,11 +72,11 @@ describe("EmailSettings view", () => {
     expect(mockStore.saveSettings).toHaveBeenCalledWith({
       provider: "mailto",
       subjectTemplate: "Custom Subject {{number}}",
-      bodyTemplate: "Please find attached invoice {{number}}.",
+      bodyTemplate: "settings.email.defaults.bodyTemplate",
       signature: "",
     });
     expect(mockMessage.success).toHaveBeenCalledWith(
-      "Saved email settings"
+      "settings.email.messages.saved"
     );
   });
 
@@ -124,8 +126,8 @@ describe("EmailSettings view", () => {
   it("toggles between provider fields correctly", async () => {
     const wrapper = mountView(EmailSettings);
     await flushPromises();
-    expect(wrapper.text()).toContain("Mailto");
-    expect(wrapper.text()).toContain("Resend");
-    expect(wrapper.text()).toContain("SMTP");
+    expect(wrapper.text()).toContain("settings.email.options.provider.mailto");
+    expect(wrapper.text()).toContain("settings.email.options.provider.resend");
+    expect(wrapper.text()).toContain("settings.email.options.provider.smtp");
   });
 });
