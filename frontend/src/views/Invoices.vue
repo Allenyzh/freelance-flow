@@ -135,14 +135,16 @@ async function confirmDownload() {
 async function handleSend(invoice: EnrichedInvoice) {
   try {
     sendLoading.value = true
-    const ok = await invoiceStore.sendEmail(invoice.id)
-    if (ok) {
-      message.success(t('invoices.sendSuccess'))
+    await invoiceStore.sendEmail(invoice.id)
+    message.success(t('invoices.sendSuccess'))
+  } catch (e: any) {
+    if (e && typeof e === 'string') {
+      message.error(e)
+    } else if (e instanceof Error) {
+      message.error(e.message)
     } else {
       message.error(t('invoices.sendError'))
     }
-  } catch {
-    message.error(t('invoices.sendError'))
   } finally {
     sendLoading.value = false
   }
@@ -424,7 +426,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
         <n-space justify="end">
           <n-button quaternary @click="entrySelectorVisible = false">{{ t('invoices.selectEntries.cancel') }}</n-button>
           <n-button type="primary" :loading="loading" @click="applyEntrySelection">{{ t('invoices.selectEntries.apply')
-          }}</n-button>
+            }}</n-button>
         </n-space>
       </template>
     </n-modal>

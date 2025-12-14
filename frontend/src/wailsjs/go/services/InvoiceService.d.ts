@@ -14,7 +14,7 @@ export function GetDefaultMessage(arg1:number,arg2:number):Promise<string>;
 
 export function List(arg1:number):Promise<Array<dto.InvoiceOutput>>;
 
-export function SendEmail(arg1:number,arg2:number):Promise<boolean>;
+export function SendEmail(arg1:number,arg2:number):Promise<void>;
 
 export function SetTimeEntries(arg1:number,arg2:dto.SetInvoiceTimeEntriesInput):Promise<dto.InvoiceOutput>;
 

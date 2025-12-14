@@ -644,10 +644,12 @@ export default {
       description: "Email provider settings and templates",
       providerCardTitle: "Email Provider",
       resendCardTitle: "Resend Configuration",
+      resendDomainTip:
+        "Note: You must verify your domain in the Resend dashboard. Only emails from verified domains (e.g., billing@yourdomain.com) are allowed. For testing, you can use onboarding@resend.dev (sends to yourself only).",
       smtpCardTitle: "SMTP Configuration",
       fields: {
         provider: "Provider",
-        from: "From",
+        from: "From Email",
         replyTo: "Reply-To",
         subjectTemplate: "Subject Template",
         bodyTemplate: "Body Template",
@@ -673,6 +675,12 @@ export default {
       messages: {
         saved: "Saved email settings",
         saveError: "Failed to save email settings",
+      },
+      validation: {
+        required: "This field is required",
+        invalidFormat:
+          "Invalid format. Use 'Name <email@example.com>' or 'email@example.com'",
+        fixErrors: "Please fix form errors",
       },
     },
     finance: {

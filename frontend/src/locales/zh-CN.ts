@@ -642,10 +642,12 @@ export default {
       description: "邮件提供商设置和模板",
       providerCardTitle: "邮件服务",
       resendCardTitle: "Resend 配置",
+      resendDomainTip:
+        "注意：使用 Resend 时，您必须在 Resend 仪表盘中验证您的域名。只能使用已验证域名的邮箱作为发件人（如 billing@yourdomain.com）。如果用于测试，可使用 onboarding@resend.dev（仅能发送给自己）。",
       smtpCardTitle: "SMTP 配置",
       fields: {
         provider: "提供商",
-        from: "发件人",
+        from: "发件人邮箱",
         replyTo: "回复地址",
         subjectTemplate: "主题模板",
         bodyTemplate: "正文模板",
@@ -671,6 +673,12 @@ export default {
       messages: {
         saved: "已保存邮件设置",
         saveError: "保存邮件设置失败",
+      },
+      validation: {
+        required: "此项必填",
+        invalidFormat:
+          "格式无效。请输入 'Name <email@example.com>' 或 'email@example.com'",
+        fixErrors: "请修正表单中的错误",
       },
     },
     finance: {

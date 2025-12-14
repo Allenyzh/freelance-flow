@@ -139,16 +139,16 @@ func (s *InvoiceService) Delete(userID int, id int) {
 }
 
 // SendEmail sends invoice via configured provider (mailto/resend/smtp placeholder).
-func (s *InvoiceService) SendEmail(userID int, invoiceID int) bool {
+func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 	invoice, err := s.Get(userID, invoiceID)
 	if err != nil {
 		log.Println("SendEmail: invoice not found:", err)
-		return false
+		return fmt.Errorf("invoice not found: %w", err)
 	}
 	client, err := s.getClient(userID, invoice.ClientID)
 	if err != nil {
 		log.Println("SendEmail: client not found:", err)
-		return false
+		return fmt.Errorf("client not found: %w", err)
 	}
 
 	settingsSvc := NewInvoiceEmailSettingsService(s.db)
@@ -160,25 +160,24 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) bool {
 	pdfBase64, err := s.GeneratePDF(userID, invoiceID, "")
 	if err != nil {
 		log.Println("SendEmail: generate pdf failed:", err)
-		return false
+		return fmt.Errorf("failed to generate PDF: %w", err)
 	}
 	pdfBytes, err := base64.StdEncoding.DecodeString(pdfBase64)
 	if err != nil {
 		log.Println("SendEmail: decode pdf failed:", err)
-		return false
+		return fmt.Errorf("failed to decode PDF: %w", err)
 	}
 
 	// mailto just indicate success (front-end opens client)
 	if emailSettings.Provider == "mailto" {
-		return true
+		return nil
 	}
 
 	// Resend provider
 	if emailSettings.Provider == "resend" {
 		apiKey := emailSettings.ResendAPIKey
 		if apiKey == "" {
-			log.Println("SendEmail: resend api key missing")
-			return false
+			return fmt.Errorf("Resend API key is missing")
 		}
 		subject := applyTemplate(emailSettings.SubjectTemplate, invoice)
 		if subject == "" {
@@ -191,7 +190,7 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) bool {
 
 		if os.Getenv("RESEND_DRY_RUN") == "1" {
 			log.Println("SendEmail: RESEND_DRY_RUN enabled, skipping network call")
-			return true
+			return nil
 		}
 
 		clientResend := resend.NewClient(apiKey)
@@ -209,29 +208,25 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) bool {
 		})
 		if err != nil {
 			log.Println("SendEmail: resend send failed:", err)
-			return false
+			return fmt.Errorf("Resend failed: %v", err)
 		}
-		return true
+		return nil
 	}
 
 	// SMTP provider
 	if emailSettings.Provider == "smtp" {
 		// Validate SMTP settings
 		if emailSettings.SMTPHost == "" {
-			log.Println("SendEmail: SMTP host missing")
-			return false
+			return fmt.Errorf("SMTP host is missing")
 		}
 		if emailSettings.SMTPUsername == "" {
-			log.Println("SendEmail: SMTP username missing")
-			return false
+			return fmt.Errorf("SMTP username is missing")
 		}
 		if emailSettings.SMTPPassword == "" {
-			log.Println("SendEmail: SMTP password missing")
-			return false
+			return fmt.Errorf("SMTP password is missing")
 		}
 		if emailSettings.FromEmail == "" {
-			log.Println("SendEmail: from email missing")
-			return false
+			return fmt.Errorf("SMTP from email is missing")
 		}
 
 		subject := applyTemplate(emailSettings.SubjectTemplate, invoice)
@@ -250,19 +245,18 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) bool {
 
 		if os.Getenv("SMTP_DRY_RUN") == "1" {
 			log.Println("SendEmail: SMTP_DRY_RUN enabled, skipping network call")
-			return true
+			return nil
 		}
 
 		// Send email via SMTP
-		success := s.sendViaSMTP(emailSettings, client.Email, subject, body, pdfBytes, invoice.Number)
-		if !success {
-			log.Println("SendEmail: SMTP send failed")
-			return false
+		if err := s.sendViaSMTP(emailSettings, client.Email, subject, body, pdfBytes, invoice.Number); err != nil {
+			log.Println("SendEmail: SMTP send failed:", err)
+			return fmt.Errorf("SMTP failed: %w", err)
 		}
-		return true
+		return nil
 	}
 
-	return false
+	return fmt.Errorf("unknown email provider: %s", emailSettings.Provider)
 }
 
 // SetTimeEntries associates time entries with an invoice and recalculates totals.
@@ -803,7 +797,7 @@ func (s *InvoiceService) sendViaSMTP(
 	body string,
 	pdfBytes []byte,
 	invoiceNumber string,
-) bool {
+) error {
 	// Setup SMTP auth
 	auth := smtp.PlainAuth(
 		"",
@@ -863,7 +857,7 @@ func (s *InvoiceService) sendViaSMTP(
 		conn, err := tls.Dial("tcp", addr, tlsConfig)
 		if err != nil {
 			log.Printf("SMTP: TLS dial failed: %v", err)
-			return false
+			return fmt.Errorf("TLS dial failed: %w", err)
 		}
 		defer func() {
 			if err := conn.Close(); err != nil {
@@ -874,7 +868,7 @@ func (s *InvoiceService) sendViaSMTP(
 		client, err := smtp.NewClient(conn, settings.SMTPHost)
 		if err != nil {
 			log.Printf("SMTP: NewClient failed: %v", err)
-			return false
+			return fmt.Errorf("smtp client creation failed: %w", err)
 		}
 		defer func() {
 			if err := client.Quit(); err != nil {
@@ -884,23 +878,23 @@ func (s *InvoiceService) sendViaSMTP(
 
 		if err := client.Auth(auth); err != nil {
 			log.Printf("SMTP: Auth failed: %v", err)
-			return false
+			return fmt.Errorf("authentication failed: %w", err)
 		}
 
 		if err := client.Mail(settings.FromEmail); err != nil {
 			log.Printf("SMTP: Mail command failed: %v", err)
-			return false
+			return fmt.Errorf("mail command failed: %w", err)
 		}
 
 		if err := client.Rcpt(toEmail); err != nil {
 			log.Printf("SMTP: Rcpt command failed: %v", err)
-			return false
+			return fmt.Errorf("rcpt command failed (check recipient address): %w", err)
 		}
 
 		w, err := client.Data()
 		if err != nil {
 			log.Printf("SMTP: Data command failed: %v", err)
-			return false
+			return fmt.Errorf("data command failed: %w", err)
 		}
 
 		if _, err := w.Write([]byte(message.String())); err != nil {
@@ -908,22 +902,22 @@ func (s *InvoiceService) sendViaSMTP(
 			if closeErr := w.Close(); closeErr != nil {
 				log.Printf("SMTP: Close writer after write failure failed: %v", closeErr)
 			}
-			return false
+			return fmt.Errorf("message write failed: %w", err)
 		}
 
 		if err := w.Close(); err != nil {
 			log.Printf("SMTP: Close writer failed: %v", err)
-			return false
+			return fmt.Errorf("message close failed: %w", err)
 		}
 
-		return true
+		return nil
 	}
 
 	// Use plain SMTP without TLS
 	client, err := smtp.Dial(addr)
 	if err != nil {
 		log.Printf("SMTP: Dial failed: %v", err)
-		return false
+		return fmt.Errorf("smtp dial failed: %w", err)
 	}
 	defer func() {
 		if err := client.Quit(); err != nil {
@@ -933,23 +927,23 @@ func (s *InvoiceService) sendViaSMTP(
 
 	if err := client.Auth(auth); err != nil {
 		log.Printf("SMTP: Auth failed: %v", err)
-		return false
+		return fmt.Errorf("authentication failed: %w", err)
 	}
 
 	if err := client.Mail(settings.FromEmail); err != nil {
 		log.Printf("SMTP: Mail command failed: %v", err)
-		return false
+		return fmt.Errorf("mail command failed: %w", err)
 	}
 
 	if err := client.Rcpt(toEmail); err != nil {
 		log.Printf("SMTP: Rcpt command failed: %v", err)
-		return false
+		return fmt.Errorf("rcpt command failed: %w", err)
 	}
 
 	w, err := client.Data()
 	if err != nil {
 		log.Printf("SMTP: Data command failed: %v", err)
-		return false
+		return fmt.Errorf("data command failed: %w", err)
 	}
 
 	if _, err := w.Write([]byte(message.String())); err != nil {
@@ -957,13 +951,13 @@ func (s *InvoiceService) sendViaSMTP(
 		if closeErr := w.Close(); closeErr != nil {
 			log.Printf("SMTP: Close writer after write failure failed: %v", closeErr)
 		}
-		return false
+		return fmt.Errorf("message write failed: %w", err)
 	}
 
 	if err := w.Close(); err != nil {
 		log.Printf("SMTP: Close writer failed: %v", err)
-		return false
+		return fmt.Errorf("message close failed: %w", err)
 	}
 
-	return true
+	return nil
 }

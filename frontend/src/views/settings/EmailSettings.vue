@@ -2,7 +2,6 @@
 import { onMounted, ref } from "vue";
 import {
   NForm,
-  NFormItem,
   NInput,
   NSelect,
   NInputNumber,
@@ -11,6 +10,9 @@ import {
   useMessage,
   NCard,
   NSwitch,
+  NGrid,
+  NFormItemGi,
+  NAlert,
 } from "naive-ui";
 import { useInvoiceEmailSettingsStore } from "@/stores/invoiceEmailSettings";
 import type { InvoiceEmailSettings, EmailProvider } from "@/types";
@@ -36,6 +38,24 @@ onMounted(async () => {
   }
 });
 
+const formRef = ref<InstanceType<typeof NForm> | null>(null);
+
+const rules = {
+  from: {
+    required: true,
+    validator: (_: any, value: string) => {
+      if (!value) return new Error(t("settings.email.validation.required"));
+      // Matches "Name <email@domain.com>" or "email@domain.com"
+      const emailRegex = /^([^<]+<[^>]+>|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
+      if (!emailRegex.test(value)) {
+        return new Error(t("settings.email.validation.invalidFormat"));
+      }
+      return true;
+    },
+    trigger: ["blur", "input"],
+  },
+};
+
 const providerOptions: { label: string; value: EmailProvider }[] = [
   { label: t("settings.email.options.provider.mailto"), value: "mailto" },
   { label: t("settings.email.options.provider.resend"), value: "resend" },
@@ -43,14 +63,20 @@ const providerOptions: { label: string; value: EmailProvider }[] = [
 ];
 
 async function handleSave() {
-  saving.value = true;
   try {
+    await formRef.value?.validate();
+    saving.value = true;
     await store.saveSettings(form.value);
     message.success(t("settings.email.messages.saved"));
   } catch (e) {
-    message.error(
-      e instanceof Error ? e.message : t("settings.email.messages.saveError")
-    );
+    if (Array.isArray(e)) {
+      // Validation errors
+      message.error(t("settings.email.validation.fixErrors"));
+    } else {
+      message.error(
+        e instanceof Error ? e.message : t("settings.email.messages.saveError")
+      );
+    }
   } finally {
     saving.value = false;
   }
@@ -60,106 +86,69 @@ async function handleSave() {
 <template>
   <div class="email-settings">
     <NCard :title="t('settings.email.providerCardTitle')" :bordered="false">
-      <NForm label-placement="top">
-        <NFormItem :label="t('settings.email.fields.provider')">
-          <NSelect
-            v-model:value="form.provider"
-            :options="providerOptions"
-            :disabled="saving"
-          />
-        </NFormItem>
+      <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
+        <NGrid :x-gap="12" :y-gap="12" :cols="2">
+          <!-- Provider Row -->
+          <NFormItemGi :span="form.provider === 'resend' ? 1 : 2" :label="t('settings.email.fields.provider')"
+            path="provider">
+            <NSelect v-model:value="form.provider" :options="providerOptions" :disabled="saving" />
+          </NFormItemGi>
 
-        <NFormItem :label="t('settings.email.fields.from')">
-          <NInput v-model:value="form.from" :disabled="saving" />
-        </NFormItem>
+          <NFormItemGi :span="1" v-if="form.provider === 'resend'" :label="t('settings.email.fields.resendApiKey')">
+            <NInput type="password" show-password-on="click" v-model:value="form.resendApiKey" :disabled="saving" />
+          </NFormItemGi>
 
-        <NFormItem :label="t('settings.email.fields.replyTo')">
-          <NInput v-model:value="form.replyTo" :disabled="saving" />
-        </NFormItem>
+          <!-- Resend Tip -->
+          <NFormItemGi :span="2" v-if="form.provider === 'resend'">
+            <NAlert type="info" show-icon :title="t('settings.email.resendCardTitle')" size="small">
+              {{ t("settings.email.resendDomainTip") }}
+            </NAlert>
+          </NFormItemGi>
 
-        <NFormItem :label="t('settings.email.fields.subjectTemplate')">
-          <NInput v-model:value="form.subjectTemplate" :disabled="saving" />
-        </NFormItem>
+          <!-- SMTP Settings -->
+          <template v-if="form.provider === 'smtp'">
+            <NFormItemGi :label="t('settings.email.fields.smtpHost')">
+              <NInput v-model:value="form.smtpHost" :disabled="saving" />
+            </NFormItemGi>
+            <NFormItemGi :label="t('settings.email.fields.smtpPort')">
+              <NInputNumber v-model:value="form.smtpPort" :disabled="saving" style="width: 100%" />
+            </NFormItemGi>
+            <NFormItemGi :label="t('settings.email.fields.smtpUsername')">
+              <NInput v-model:value="form.smtpUsername" :disabled="saving" />
+            </NFormItemGi>
+            <NFormItemGi :label="t('settings.email.fields.smtpPassword')">
+              <NInput type="password" show-password-on="click" v-model:value="form.smtpPassword" :disabled="saving" />
+            </NFormItemGi>
+            <NFormItemGi :span="2" :label="t('settings.email.fields.smtpUseTLS')">
+              <NSwitch v-model:value="form.smtpUseTLS" :disabled="saving" />
+            </NFormItemGi>
+          </template>
 
-        <NFormItem :label="t('settings.email.fields.bodyTemplate')">
-          <NInput
-            type="textarea"
-            v-model:value="form.bodyTemplate"
-            :autosize="{ minRows: 3, maxRows: 6 }"
-            :disabled="saving"
-          />
-        </NFormItem>
+          <!-- Common Fields -->
+          <NFormItemGi :label="t('settings.email.fields.from')" path="from">
+            <NInput v-model:value="form.from" :disabled="saving" placeholder="Name <email@example.com>" />
+          </NFormItemGi>
 
-        <NFormItem :label="t('settings.email.fields.signature')">
-          <NInput
-            type="textarea"
-            v-model:value="form.signature"
-            :autosize="{ minRows: 2, maxRows: 4 }"
-            :disabled="saving"
-          />
-        </NFormItem>
+          <NFormItemGi :label="t('settings.email.fields.replyTo')" path="replyTo">
+            <NInput v-model:value="form.replyTo" :disabled="saving" />
+          </NFormItemGi>
 
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
+          <NFormItemGi :span="2" :label="t('settings.email.fields.subjectTemplate')" path="subjectTemplate">
+            <NInput v-model:value="form.subjectTemplate" :disabled="saving" />
+          </NFormItemGi>
 
-    <NCard
-      v-if="form.provider === 'resend'"
-      :title="t('settings.email.resendCardTitle')"
-      :bordered="false"
-      style="margin-top: 16px"
-    >
-      <NForm label-placement="top">
-        <NFormItem :label="t('settings.email.fields.resendApiKey')">
-          <NInput
-            type="password"
-            show-password-on="click"
-            v-model:value="form.resendApiKey"
-            :disabled="saving"
-          />
-        </NFormItem>
+          <NFormItemGi :label="t('settings.email.fields.bodyTemplate')" path="bodyTemplate">
+            <NInput type="textarea" v-model:value="form.bodyTemplate" :autosize="{ minRows: 2, maxRows: 4 }"
+              :disabled="saving" />
+          </NFormItemGi>
 
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
+          <NFormItemGi :label="t('settings.email.fields.signature')" path="signature">
+            <NInput type="textarea" v-model:value="form.signature" :autosize="{ minRows: 2, maxRows: 4 }"
+              :disabled="saving" />
+          </NFormItemGi>
+        </NGrid>
 
-    <NCard
-      v-if="form.provider === 'smtp'"
-      :title="t('settings.email.smtpCardTitle')"
-      :bordered="false"
-      style="margin-top: 16px"
-    >
-      <NForm label-placement="top">
-        <NFormItem :label="t('settings.email.fields.smtpHost')">
-          <NInput v-model:value="form.smtpHost" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.email.fields.smtpPort')">
-          <NInputNumber v-model:value="form.smtpPort" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.email.fields.smtpUsername')">
-          <NInput v-model:value="form.smtpUsername" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.email.fields.smtpPassword')">
-          <NInput
-            type="password"
-            show-password-on="click"
-            v-model:value="form.smtpPassword"
-            :disabled="saving"
-          />
-        </NFormItem>
-        <NFormItem :label="t('settings.email.fields.smtpUseTLS')">
-          <NSwitch v-model:value="form.smtpUseTLS" :disabled="saving" />
-        </NFormItem>
-
-        <NSpace justify="end" style="margin-top: 24px">
+        <NSpace justify="end" style="margin-top: 0">
           <NButton type="primary" :loading="saving" @click="handleSave">
             {{ t("common.save") }}
           </NButton>
@@ -171,6 +160,6 @@ async function handleSave() {
 
 <style scoped>
 .email-settings {
-  max-width: 800px;
+  /* max-width removed for full width responsiveness */
 }
 </style>
