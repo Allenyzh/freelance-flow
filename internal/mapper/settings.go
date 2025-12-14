@@ -22,6 +22,10 @@ func ToUserSettingsDTO(settings models.UserSettings) dto.UserSettings {
 		SenderPostalCode:       settings.SenderPostalCode,
 		InvoiceTerms:           settings.InvoiceTerms,
 		DefaultMessageTemplate: settings.DefaultMessageTemplate,
+		HstRegistered:          settings.HstRegistered,
+		HstNumber:              settings.HstNumber,
+		TaxEnabled:             settings.TaxEnabled,
+		ExpectedIncome:         settings.ExpectedIncome,
 	}
 }
 
@@ -42,5 +46,9 @@ func ToUserSettingsModel(settings dto.UserSettings) models.UserSettings {
 		SenderPostalCode:       settings.SenderPostalCode,
 		InvoiceTerms:           settings.InvoiceTerms,
 		DefaultMessageTemplate: settings.DefaultMessageTemplate,
+		HstRegistered:          settings.HstRegistered,
+		HstNumber:              settings.HstNumber,
+		TaxEnabled:             settings.TaxEnabled,
+		ExpectedIncome:         settings.ExpectedIncome,
 	}
 }

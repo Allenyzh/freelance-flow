@@ -1,0 +1,220 @@
+/* QuickBooks Style Invoice Template - Extracted from Google Sheets Export */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 12pt;
+  color: #000000;
+  background: #ffffff;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.invoice {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 0;
+  background: #ffffff;
+}
+
+/* Header Section - Dark Gray Background */
+.header {
+  background-color: #3f3f3f;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 120px;
+}
+
+.sender-info {
+  color: #ffffff;
+  font-size: 12pt;
+  line-height: 1.6;
+}
+
+.sender-info a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.invoice-title {
+  color: #ffffff;
+  font-size: 50pt;
+  font-weight: normal;
+  text-align: right;
+  line-height: 1;
+}
+
+/* Green Separator Line */
+.green-line {
+  background-color: #00b050;
+  height: 5px;
+  width: 100%;
+}
+
+/* Details Section */
+.details-section {
+  display: flex;
+  justify-content: space-between;
+  padding: 30px 30px 20px 30px;
+}
+
+.client-info {
+  flex: 1;
+}
+
+.client-info .bold {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.invoice-meta {
+  text-align: right;
+  min-width: 250px;
+}
+
+.invoice-meta > div {
+  margin-bottom: 5px;
+}
+
+.invoice-meta .bold {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+/* Items Table */
+.items-table {
+  width: calc(100% - 60px);
+  margin: 0 30px;
+  border-collapse: collapse;
+}
+
+.items-table thead tr {
+  background-color: #00b050;
+  color: #ffffff;
+}
+
+.items-table th {
+  padding: 10px;
+  text-align: left;
+  font-weight: normal;
+}
+
+.items-table th.qty,
+.items-table th.rate,
+.items-table th.amount {
+  text-align: right;
+  width: 100px;
+}
+
+.items-table td {
+  padding: 15px 10px;
+  border-bottom: 1px solid #000000;
+  vertical-align: middle;
+}
+
+.items-table td.description {
+  width: 50%;
+}
+
+.items-table td.qty,
+.items-table td.rate,
+.items-table td.amount {
+  text-align: right;
+  width: 100px;
+}
+
+.items-table tbody tr:last-child td {
+  border-bottom: 2px solid #000000;
+}
+
+/* Empty row styling */
+.items-table tr.empty-row td {
+  height: 52px;
+}
+
+/* Footer Section */
+.footer-section {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 30px;
+  margin-top: 20px;
+}
+
+.message-box {
+  flex: 1;
+  max-width: 400px;
+}
+
+.message-box .bold {
+  font-weight: bold;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.message-content {
+  border: 1px solid #000000;
+  padding: 10px;
+  min-height: 120px;
+  white-space: pre-wrap;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.totals {
+  min-width: 250px;
+  text-align: right;
+}
+
+.totals > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.totals > div > span:first-child {
+  font-weight: bold;
+  margin-right: 20px;
+}
+
+.totals .balance-due {
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.totals .balance-due > span {
+  font-weight: bold;
+}
+
+/* Utility Classes */
+.bold {
+  font-weight: bold;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* Print-specific styles */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .invoice {
+    page-break-inside: avoid;
+  }
+}

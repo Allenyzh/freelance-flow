@@ -50,7 +50,7 @@ export default {
     username: "用户名",
     usernamePlaceholder: "请输入用户名",
     email: "邮箱（可选）",
-    emailPlaceholder: "your@email.com",
+    emailPlaceholder: "your{'@'}email.com",
     password: "密码",
     passwordPlaceholder: "请输入密码",
     confirmPassword: "确认密码",
@@ -277,6 +277,7 @@ export default {
     empty: {
       description: "暂无发票。",
       action: "创建您的第一张发票",
+      noMatch: "当前筛选条件下没有匹配的发票",
     },
     selectEntries: {
       title: "选择工时条目",
@@ -337,7 +338,8 @@ export default {
         amount: "金额",
         countSuffix: "项",
         empty: "暂无项目（将从工时条目生成）",
-        editHint: "发票项目将根据关联的工时条目自动生成，请通过“选择工时条目”来调整。",
+        editHint:
+          "发票项目将根据关联的工时条目自动生成，请通过“选择工时条目”来调整。",
       },
       subtotal: "小计",
       taxRate: "税率",
@@ -349,6 +351,7 @@ export default {
       validation: {
         fixErrors: "请修正表单错误",
         selectEntries: "请至少选择一条工时记录",
+        selectClientProject: "请选择客户和项目",
       },
     },
   },
@@ -370,7 +373,7 @@ export default {
       name: "客户名称",
       namePlaceholder: "输入客户名称",
       email: "邮箱",
-      emailPlaceholder: "client@example.com",
+      emailPlaceholder: "client{'@'}example.com",
       contactPerson: "联系人",
       contactPersonPlaceholder: "张三",
       website: "网站",
@@ -611,6 +614,28 @@ export default {
         saved: "已保存发票设置",
         saveError: "保存设置失败",
       },
+      hst: {
+        cardTitle: "税务设置（HST/GST）",
+        registered: "已注册 HST",
+        registeredHint: "您是否已在 CRA 注册 HST/GST？",
+        number: "HST 号码",
+        numberPlaceholder: "例如 12345 6789 RT0001",
+        taxEnabled: "发票显示税款",
+        taxEnabledHint: "在发票上启用税款计算",
+        expectedIncome: "预计年收入",
+        expectedIncomePlaceholder: "选择预计收入范围",
+        incomeOptions: {
+          under30k: "低于 $30,000（小型供应商）",
+          over30k: "超过 $30,000",
+          unsure: "暂不确定",
+        },
+        info: {
+          notRegistered:
+            "作为小型供应商（年收入低于 $30,000），您无需注册 HST。在注册之前，您不能在发票上收取 HST。",
+          registered:
+            "您必须对所有应税供应收取 HST。您的 HST 号码将显示在发票上。",
+        },
+      },
     },
     email: {
       title: "邮件",
@@ -640,8 +665,8 @@ export default {
         },
       },
       defaults: {
-        subjectTemplate: "发票 {{number}}",
-        bodyTemplate: "请查收附件中的发票 {{number}}。",
+        subjectTemplate: "发票 {'{{'}number{'}}'}",
+        bodyTemplate: "请查收附件中的发票 {'{{'}number{'}}'}。",
       },
       messages: {
         saved: "已保存邮件设置",

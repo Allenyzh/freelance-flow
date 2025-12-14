@@ -10,6 +10,7 @@ type CreateProjectInput struct {
 	Status      string   `json:"status"`
 	Deadline    string   `json:"deadline"`
 	Tags        []string `json:"tags"`
+	ServiceType string   `json:"serviceType"` // software_development, system_maintenance, consulting, design, other
 }
 
 // UpdateProjectInput represents the input for updating an existing project.
@@ -23,6 +24,7 @@ type UpdateProjectInput struct {
 	Status      string   `json:"status"`
 	Deadline    string   `json:"deadline"`
 	Tags        []string `json:"tags"`
+	ServiceType string   `json:"serviceType"`
 }
 
 // ProjectOutput represents the project data returned from API.
@@ -36,4 +38,5 @@ type ProjectOutput struct {
 	Status      string   `json:"status"`
 	Deadline    string   `json:"deadline"`
 	Tags        []string `json:"tags"`
+	ServiceType string   `json:"serviceType"`
 }

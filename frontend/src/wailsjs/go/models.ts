@@ -11,6 +11,11 @@ export namespace dto {
 	    currency: string;
 	    status: string;
 	    notes: string;
+	    billingCompany: string;
+	    billingAddress: string;
+	    billingCity: string;
+	    billingProvince: string;
+	    billingPostalCode: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ClientOutput(source);
@@ -28,6 +33,11 @@ export namespace dto {
 	        this.currency = source["currency"];
 	        this.status = source["status"];
 	        this.notes = source["notes"];
+	        this.billingCompany = source["billingCompany"];
+	        this.billingAddress = source["billingAddress"];
+	        this.billingCity = source["billingCity"];
+	        this.billingProvince = source["billingProvince"];
+	        this.billingPostalCode = source["billingPostalCode"];
 	    }
 	}
 	export class CreateClientInput {
@@ -40,6 +50,11 @@ export namespace dto {
 	    currency: string;
 	    status: string;
 	    notes: string;
+	    billingCompany: string;
+	    billingAddress: string;
+	    billingCity: string;
+	    billingProvince: string;
+	    billingPostalCode: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new CreateClientInput(source);
@@ -56,6 +71,11 @@ export namespace dto {
 	        this.currency = source["currency"];
 	        this.status = source["status"];
 	        this.notes = source["notes"];
+	        this.billingCompany = source["billingCompany"];
+	        this.billingAddress = source["billingAddress"];
+	        this.billingCity = source["billingCity"];
+	        this.billingProvince = source["billingProvince"];
+	        this.billingPostalCode = source["billingPostalCode"];
 	    }
 	}
 	export class InvoiceItemInput {
@@ -133,6 +153,7 @@ export namespace dto {
 	    status: string;
 	    deadline: string;
 	    tags: string[];
+	    serviceType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new CreateProjectInput(source);
@@ -148,6 +169,7 @@ export namespace dto {
 	        this.status = source["status"];
 	        this.deadline = source["deadline"];
 	        this.tags = source["tags"];
+	        this.serviceType = source["serviceType"];
 	    }
 	}
 	export class CreateTimeEntryInput {
@@ -305,6 +327,7 @@ export namespace dto {
 	    status: string;
 	    deadline: string;
 	    tags: string[];
+	    serviceType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProjectOutput(source);
@@ -321,6 +344,7 @@ export namespace dto {
 	        this.status = source["status"];
 	        this.deadline = source["deadline"];
 	        this.tags = source["tags"];
+	        this.serviceType = source["serviceType"];
 	    }
 	}
 	export class RegisterInput {
@@ -511,6 +535,11 @@ export namespace dto {
 	    currency: string;
 	    status: string;
 	    notes: string;
+	    billingCompany: string;
+	    billingAddress: string;
+	    billingCity: string;
+	    billingProvince: string;
+	    billingPostalCode: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateClientInput(source);
@@ -528,6 +557,11 @@ export namespace dto {
 	        this.currency = source["currency"];
 	        this.status = source["status"];
 	        this.notes = source["notes"];
+	        this.billingCompany = source["billingCompany"];
+	        this.billingAddress = source["billingAddress"];
+	        this.billingCity = source["billingCity"];
+	        this.billingProvince = source["billingProvince"];
+	        this.billingPostalCode = source["billingPostalCode"];
 	    }
 	}
 	export class UpdateInvoiceInput {
@@ -590,6 +624,7 @@ export namespace dto {
 	    status: string;
 	    deadline: string;
 	    tags: string[];
+	    serviceType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateProjectInput(source);
@@ -606,6 +641,7 @@ export namespace dto {
 	        this.status = source["status"];
 	        this.deadline = source["deadline"];
 	        this.tags = source["tags"];
+	        this.serviceType = source["serviceType"];
 	    }
 	}
 	export class UpdateTimeEntryInput {
@@ -695,6 +731,10 @@ export namespace dto {
 	    senderPostalCode: string;
 	    invoiceTerms: string;
 	    defaultMessageTemplate: string;
+	    hstRegistered: boolean;
+	    hstNumber: string;
+	    taxEnabled: boolean;
+	    expectedIncome: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new UserSettings(source);
@@ -716,6 +756,10 @@ export namespace dto {
 	        this.senderPostalCode = source["senderPostalCode"];
 	        this.invoiceTerms = source["invoiceTerms"];
 	        this.defaultMessageTemplate = source["defaultMessageTemplate"];
+	        this.hstRegistered = source["hstRegistered"];
+	        this.hstNumber = source["hstNumber"];
+	        this.taxEnabled = source["taxEnabled"];
+	        this.expectedIncome = source["expectedIncome"];
 	    }
 	}
 

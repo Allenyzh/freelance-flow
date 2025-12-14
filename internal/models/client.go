@@ -13,4 +13,10 @@ type Client struct {
 	Currency      string `json:"currency"`
 	Status        string `json:"status"` // active, inactive
 	Notes         string `json:"notes"`
+	// Billing information for invoices
+	BillingCompany    string `json:"billingCompany"`
+	BillingAddress    string `json:"billingAddress"`
+	BillingCity       string `json:"billingCity"`
+	BillingProvince   string `json:"billingProvince"`
+	BillingPostalCode string `json:"billingPostalCode"`
 }

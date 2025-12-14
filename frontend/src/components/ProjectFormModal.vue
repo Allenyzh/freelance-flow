@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { NModal, NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NButton, NSpace, NDynamicTags, useMessage } from 'naive-ui'
 import type { Project, Client } from '@/types'
-import type { FormInst, FormRules } from 'naive-ui'
+import type { FormInst } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
@@ -31,6 +31,7 @@ interface ProjectFormData {
   status: string
   deadline: string | null
   tags: string[]
+  serviceType: string
 }
 
 const formRef = ref<FormInst | null>(null)
@@ -42,7 +43,8 @@ const formValue = ref<ProjectFormData>({
   currency: 'USD',
   status: 'active',
   deadline: null,
-  tags: []
+  tags: [],
+  serviceType: 'software_development'
 })
 
 import { projectSchema } from '@/schemas/project'
@@ -71,6 +73,14 @@ const statusOptions = [
   { label: t('projects.status.completed'), value: 'completed' }
 ]
 
+const serviceTypeOptions = [
+  { label: 'Software Development', value: 'software_development' },
+  { label: 'System Maintenance', value: 'system_maintenance' },
+  { label: 'Consulting', value: 'consulting' },
+  { label: 'Design', value: 'design' },
+  { label: 'Other', value: 'other' }
+]
+
 watch(() => props.project, (newProject) => {
   if (newProject) {
     formValue.value = {
@@ -81,7 +91,8 @@ watch(() => props.project, (newProject) => {
       currency: newProject.currency,
       status: newProject.status,
       deadline: newProject.deadline || null,
-      tags: newProject.tags || []
+      tags: newProject.tags || [],
+      serviceType: newProject.serviceType || 'software_development'
     }
   } else {
     formValue.value = {
@@ -92,7 +103,8 @@ watch(() => props.project, (newProject) => {
       currency: 'USD',
       status: 'active',
       deadline: null,
-      tags: []
+      tags: [],
+      serviceType: 'software_development'
     }
   }
 }, { immediate: true })
@@ -134,12 +146,22 @@ function handleSubmit() {
       require-mark-placement="right-hanging">
       <n-form-item :label="t('form.project.client')" path="clientId">
         <n-select v-model:value="formValue.clientId" :options="clients.map(c => ({ label: c.name, value: c.id }))"
-          :placeholder="t('form.project.clientPlaceholder')" />
+          :placeholder="t('form.project.clientPlaceholder')" filterable />
       </n-form-item>
 
       <n-form-item :label="t('form.project.name')" path="name">
         <n-input v-model:value="formValue.name" :placeholder="t('form.project.namePlaceholder')" />
       </n-form-item>
+
+      <n-space style="width: 100%">
+        <n-form-item label="Service Type" path="serviceType" style="flex: 1;">
+          <n-select v-model:value="formValue.serviceType" :options="serviceTypeOptions" />
+        </n-form-item>
+
+        <n-form-item :label="t('form.project.status')" path="status" style="flex: 1;">
+          <n-select v-model:value="formValue.status" :options="statusOptions" />
+        </n-form-item>
+      </n-space>
 
       <n-form-item :label="t('form.project.description')" path="description">
         <n-input v-model:value="formValue.description" type="textarea"
@@ -148,17 +170,16 @@ function handleSubmit() {
 
       <n-space>
         <n-form-item :label="t('form.project.hourlyRate')" path="hourlyRate" style="flex: 1;">
-          <n-input-number v-model:value="formValue.hourlyRate" :min="0" placeholder="0.00" style="width: 100%;" />
+          <n-input-number v-model:value="formValue.hourlyRate" :min="0" placeholder="0.00" style="width: 100%;">
+            <template #prefix>
+              {{ formValue.currency === 'USD' || formValue.currency === 'CAD' ? '$' : (formValue.currency === 'EUR' ?
+                '€' : (formValue.currency === 'GBP' ? '£' : '$')) }}
+            </template>
+          </n-input-number>
         </n-form-item>
 
         <n-form-item :label="t('form.project.currency')" path="currency" style="flex: 1;">
           <n-select v-model:value="formValue.currency" :options="currencyOptions" />
-        </n-form-item>
-      </n-space>
-
-      <n-space>
-        <n-form-item :label="t('form.project.status')" path="status" style="flex: 1;">
-          <n-select v-model:value="formValue.status" :options="statusOptions" />
         </n-form-item>
 
         <n-form-item :label="t('form.project.deadline')" path="deadline" style="flex: 1;">

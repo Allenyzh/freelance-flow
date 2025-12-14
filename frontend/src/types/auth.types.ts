@@ -41,11 +41,3 @@ export interface UpdateUserInput {
   avatarUrl?: string;
   settingsJson?: string;
 }
-
-/** User settings stored as JSON */
-export interface UserSettings {
-  currency: string;
-  defaultTaxRate: number;
-  language: string;
-  theme: string;
-}

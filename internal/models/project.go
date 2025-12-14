@@ -11,5 +11,6 @@ type Project struct {
 	Currency    string   `json:"currency"`
 	Status      string   `json:"status"` // active, archived, completed
 	Deadline    string   `json:"deadline"`
-	Tags        []string `json:"tags"` // Handled as pipe-delimited string in DB for simplicity
+	Tags        []string `json:"tags"`        // Handled as pipe-delimited string in DB for simplicity
+	ServiceType string   `json:"serviceType"` // software_development, system_maintenance, consulting, design, other
 }

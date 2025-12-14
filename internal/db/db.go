@@ -156,6 +156,16 @@ func runLegacyMigrations(db *sql.DB) {
 	addColumnIfNotExists(db, "projects", "user_id", "INTEGER")
 	addColumnIfNotExists(db, "time_entries", "user_id", "INTEGER")
 	addColumnIfNotExists(db, "invoices", "user_id", "INTEGER")
+
+	// Migration: Add billing fields to clients
+	addColumnIfNotExists(db, "clients", "billing_company", "TEXT")
+	addColumnIfNotExists(db, "clients", "billing_address", "TEXT")
+	addColumnIfNotExists(db, "clients", "billing_city", "TEXT")
+	addColumnIfNotExists(db, "clients", "billing_province", "TEXT")
+	addColumnIfNotExists(db, "clients", "billing_postal_code", "TEXT")
+
+	// Migration: Add service_type to projects
+	addColumnIfNotExists(db, "projects", "service_type", "TEXT")
 }
 
 // addColumnIfNotExists adds a column to a table if it doesn't already exist.

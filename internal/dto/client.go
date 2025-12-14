@@ -13,6 +13,12 @@ type CreateClientInput struct {
 	Currency      string `json:"currency"`
 	Status        string `json:"status"`
 	Notes         string `json:"notes"`
+	// Billing information
+	BillingCompany    string `json:"billingCompany"`
+	BillingAddress    string `json:"billingAddress"`
+	BillingCity       string `json:"billingCity"`
+	BillingProvince   string `json:"billingProvince"`
+	BillingPostalCode string `json:"billingPostalCode"`
 }
 
 // UpdateClientInput represents the input for updating an existing client.
@@ -28,6 +34,12 @@ type UpdateClientInput struct {
 	Currency      string `json:"currency"`
 	Status        string `json:"status"`
 	Notes         string `json:"notes"`
+	// Billing information
+	BillingCompany    string `json:"billingCompany"`
+	BillingAddress    string `json:"billingAddress"`
+	BillingCity       string `json:"billingCity"`
+	BillingProvince   string `json:"billingProvince"`
+	BillingPostalCode string `json:"billingPostalCode"`
 }
 
 // ClientOutput represents the client data returned from API.
@@ -42,4 +54,10 @@ type ClientOutput struct {
 	Currency      string `json:"currency"`
 	Status        string `json:"status"`
 	Notes         string `json:"notes"`
+	// Billing information
+	BillingCompany    string `json:"billingCompany"`
+	BillingAddress    string `json:"billingAddress"`
+	BillingCity       string `json:"billingCity"`
+	BillingProvince   string `json:"billingProvince"`
+	BillingPostalCode string `json:"billingPostalCode"`
 }

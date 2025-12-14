@@ -10,6 +10,10 @@ export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
 
+export function SaveAndOpenPDF(arg1, arg2) {
+  return window['go']['main']['App']['SaveAndOpenPDF'](arg1, arg2);
+}
+
 export function SetBootTimings(arg1) {
   return window['go']['main']['App']['SetBootTimings'](arg1);
 }

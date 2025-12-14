@@ -6,4 +6,6 @@ export function GetBootTimings():Promise<main.BootTimings>;
 
 export function Greet(arg1:string):Promise<string>;
 
+export function SaveAndOpenPDF(arg1:string,arg2:string):Promise<string>;
+
 export function SetBootTimings(arg1:main.BootTimings):Promise<void>;

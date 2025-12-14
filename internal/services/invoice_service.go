@@ -323,7 +323,114 @@ func (s *InvoiceService) GeneratePDF(userID int, invoiceID int, message string) 
 	// Ensure we use latest totals and items derived from linked time entries
 	invoice = s.ensureInvoiceRecalcForPDF(userID, invoice, settings)
 
-	pdf, err := s.renderPDF(invoice, client, settings, finalMessage)
+	// Use template-based PDF generation
+	pdfBytes, err := s.renderPDFWithTemplate(invoice, client, settings, finalMessage)
+	if err != nil {
+		log.Printf("Template PDF failed, falling back to fpdf: %v", err)
+		// Fallback to old fpdf method
+		return s.generatePDFWithFpdf(invoice, client, settings, finalMessage)
+	}
+
+	return base64.StdEncoding.EncodeToString(pdfBytes), nil
+}
+
+// renderPDFWithTemplate uses the HTML template renderer for PDF generation.
+func (s *InvoiceService) renderPDFWithTemplate(invoice dto.InvoiceOutput, client models.Client, settings models.UserSettings, message string) ([]byte, error) {
+	templatesDir := GetTemplatesDir()
+	renderer := NewTemplateRenderer(templatesDir)
+
+	// Build billing city line from parts
+	billingCityLine := buildBillingCityLine(client)
+
+	// Get currency symbol
+	currencySymbol := getCurrencySymbol(settings.Currency)
+
+	// Use billing company, fallback to client name
+	billingCompany := client.BillingCompany
+	if billingCompany == "" {
+		billingCompany = client.Name
+	}
+
+	// Build template data
+	data := InvoiceTemplateData{
+		SenderName:       settings.SenderName,
+		SenderCompany:    settings.SenderCompany,
+		SenderAddress:    settings.SenderAddress,
+		SenderPostalCode: settings.SenderPostalCode,
+		SenderPhone:      settings.SenderPhone,
+		SenderEmail:      settings.SenderEmail,
+
+		BillingCompany:  billingCompany,
+		BillingAddress:  client.BillingAddress,
+		BillingCityLine: billingCityLine,
+
+		InvoiceNumber: invoice.Number,
+		IssueDate:     formatDate(invoice.IssueDate, settings),
+		DueDate:       formatDate(invoice.DueDate, settings),
+		Terms:         settings.InvoiceTerms,
+
+		Subtotal:       invoice.Subtotal,
+		TaxRate:        invoice.TaxRate,
+		TaxAmount:      invoice.TaxAmount,
+		Total:          invoice.Total,
+		Currency:       settings.Currency,
+		CurrencySymbol: currencySymbol,
+
+		MinRows: 5,
+		Message: message,
+	}
+
+	// Convert invoice items
+	for _, item := range invoice.Items {
+		data.Items = append(data.Items, InvoiceItemData{
+			Description: item.Description,
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			Amount:      item.Amount,
+		})
+	}
+
+	// Use quickbooks template by default
+	return renderer.GenerateInvoicePDF("quickbooks", data)
+}
+
+// buildBillingCityLine constructs "City, Province, Postal Code" line.
+func buildBillingCityLine(client models.Client) string {
+	parts := []string{}
+	if client.BillingCity != "" {
+		parts = append(parts, client.BillingCity)
+	}
+	if client.BillingProvince != "" {
+		parts = append(parts, client.BillingProvince)
+	}
+	if client.BillingPostalCode != "" {
+		parts = append(parts, client.BillingPostalCode)
+	}
+	if len(parts) == 0 {
+		return "City, Province, Postal code"
+	}
+	return strings.Join(parts, ", ")
+}
+
+// getCurrencySymbol returns the currency symbol for a given currency code.
+func getCurrencySymbol(currency string) string {
+	symbols := map[string]string{
+		"CAD": "$",
+		"USD": "$",
+		"CNY": "¥",
+		"EUR": "€",
+		"GBP": "£",
+		"JPY": "¥",
+	}
+	if sym, ok := symbols[currency]; ok {
+		return sym
+	}
+	return "$" // Default to $
+}
+
+// generatePDFWithFpdf is the legacy PDF generation using fpdf (fallback).
+func (s *InvoiceService) generatePDFWithFpdf(invoice dto.InvoiceOutput, client models.Client, settings models.UserSettings, message string) (string, error) {
+	pdf, err := s.renderPDF(invoice, client, settings, message)
 	if err != nil {
 		return "", err
 	}
@@ -350,9 +457,9 @@ func (s *InvoiceService) GetDefaultMessage(userID int, invoiceID int) (string, e
 
 // getClient fetches client detail for invoices.
 func (s *InvoiceService) getClient(userID int, clientID int) (models.Client, error) {
-	row := s.db.QueryRow("SELECT id, name, email, website, avatar, contact_person, address, currency, status, notes FROM clients WHERE id = ? AND user_id = ?", clientID, userID)
+	row := s.db.QueryRow("SELECT id, name, email, website, avatar, contact_person, address, currency, status, notes, billing_company, billing_address, billing_city, billing_province, billing_postal_code FROM clients WHERE id = ? AND user_id = ?", clientID, userID)
 	var c models.Client
-	err := row.Scan(&c.ID, &c.Name, &c.Email, &c.Website, &c.Avatar, &c.ContactPerson, &c.Address, &c.Currency, &c.Status, &c.Notes)
+	err := row.Scan(&c.ID, &c.Name, &c.Email, &c.Website, &c.Avatar, &c.ContactPerson, &c.Address, &c.Currency, &c.Status, &c.Notes, &c.BillingCompany, &c.BillingAddress, &c.BillingCity, &c.BillingProvince, &c.BillingPostalCode)
 	if err != nil {
 		return models.Client{}, err
 	}
@@ -477,17 +584,20 @@ func (s *InvoiceService) renderPDF(invoice dto.InvoiceOutput, client models.Clie
 	pdf.AddPage()
 	hasRoboto, hasNoto := loadPDFFonts(pdf)
 	baseFont := "Helvetica"
+	boldStyle := "B" // Helvetica supports bold style
 	if hasNoto {
 		baseFont = "NotoSansSC"
+		boldStyle = "" // UTF-8 fonts don't have bold variant loaded
 	} else if hasRoboto {
 		baseFont = "Roboto"
+		boldStyle = "" // UTF-8 fonts don't have bold variant loaded
 	}
 
 	headerFill := func() {
 		pdf.SetFillColor(51, 51, 51)
 		pdf.Rect(0, 0, 210, 35, "F")
 		pdf.SetTextColor(255, 255, 255)
-		pdf.SetFont(baseFont, "B", 28)
+		pdf.SetFont(baseFont, boldStyle, 28)
 		pdf.SetXY(150, 12)
 		pdf.CellFormat(50, 10, "INVOICE", "", 0, "R", false, 0, "")
 
@@ -518,7 +628,7 @@ func (s *InvoiceService) renderPDF(invoice dto.InvoiceOutput, client models.Clie
 
 	sectionInvoiceInfo := func() {
 		pdf.Ln(10)
-		pdf.SetFont(baseFont, "B", 11)
+		pdf.SetFont(baseFont, boldStyle, 11)
 		pdf.CellFormat(90, 6, "INVOICE TO "+strings.ToUpper(client.Name), "", 0, "L", false, 0, "")
 		pdf.CellFormat(90, 6, fmt.Sprintf("INVOICE# %s", invoice.Number), "", 1, "R", false, 0, "")
 
@@ -544,7 +654,7 @@ func (s *InvoiceService) renderPDF(invoice dto.InvoiceOutput, client models.Clie
 	tableItems := func() {
 		pdf.SetFillColor(12, 168, 67)
 		pdf.SetTextColor(255, 255, 255)
-		pdf.SetFont(baseFont, "B", 10)
+		pdf.SetFont(baseFont, boldStyle, 10)
 		pdf.CellFormat(100, 8, "DESCRIPTION", "1", 0, "L", true, 0, "")
 		pdf.CellFormat(30, 8, "QTY", "1", 0, "C", true, 0, "")
 		pdf.CellFormat(30, 8, "RATE", "1", 0, "C", true, 0, "")
@@ -596,7 +706,7 @@ func (s *InvoiceService) renderPDF(invoice dto.InvoiceOutput, client models.Clie
 
 	messageSection := func() {
 		pdf.Ln(6)
-		pdf.SetFont(baseFont, "B", 10)
+		pdf.SetFont(baseFont, boldStyle, 10)
 		pdf.CellFormat(60, 6, "MESSAGE", "", 1, "L", false, 0, "")
 		pdf.SetFont(baseFont, "", 10)
 		pdf.MultiCell(120, 6, message, "1", "L", false)

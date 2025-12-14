@@ -17,4 +17,9 @@ type UserSettings struct {
 	SenderPostalCode       string  `json:"senderPostalCode"`
 	InvoiceTerms           string  `json:"invoiceTerms"`
 	DefaultMessageTemplate string  `json:"defaultMessageTemplate"`
+	// HST (Harmonized Sales Tax) settings for Canadian self-employed
+	HstRegistered  bool   `json:"hstRegistered"`  // Whether user has registered for HST
+	HstNumber      string `json:"hstNumber"`      // HST Registration Number (e.g. 12345 6789 RT0001)
+	TaxEnabled     bool   `json:"taxEnabled"`     // Whether to show tax on invoices
+	ExpectedIncome string `json:"expectedIncome"` // "under30k", "over30k", "unsure"
 }

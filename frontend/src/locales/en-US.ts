@@ -50,7 +50,7 @@ export default {
     username: "Username",
     usernamePlaceholder: "Enter your username",
     email: "Email (Optional)",
-    emailPlaceholder: "your@email.com",
+    emailPlaceholder: "your{'@'}email.com",
     password: "Password",
     passwordPlaceholder: "Enter password",
     confirmPassword: "Confirm Password",
@@ -279,6 +279,7 @@ export default {
     empty: {
       description: "No invoices found.",
       action: "Create your first invoice",
+      noMatch: "No invoices match the current filter",
     },
     selectEntries: {
       title: "Select Time Entries",
@@ -352,6 +353,7 @@ export default {
       validation: {
         fixErrors: "Please fix form errors",
         selectEntries: "Please select at least one time entry",
+        selectClientProject: "Please select both client and project",
       },
     },
   },
@@ -373,7 +375,7 @@ export default {
       name: "Client Name",
       namePlaceholder: "Enter client name",
       email: "Email",
-      emailPlaceholder: "client@example.com",
+      emailPlaceholder: "client{'@'}example.com",
       contactPerson: "Contact Person",
       contactPersonPlaceholder: "John Doe",
       website: "Website",
@@ -614,6 +616,28 @@ export default {
         saved: "Saved invoice settings",
         saveError: "Failed to save settings",
       },
+      hst: {
+        cardTitle: "Tax Settings (HST/GST)",
+        registered: "HST Registered",
+        registeredHint: "Have you registered for HST/GST with the CRA?",
+        number: "HST Number",
+        numberPlaceholder: "e.g. 12345 6789 RT0001",
+        taxEnabled: "Show Tax on Invoices",
+        taxEnabledHint: "Enable tax calculation on invoices",
+        expectedIncome: "Expected Annual Income",
+        expectedIncomePlaceholder: "Select expected income range",
+        incomeOptions: {
+          under30k: "Under $30,000 (Small Supplier)",
+          over30k: "Over $30,000",
+          unsure: "Not sure yet",
+        },
+        info: {
+          notRegistered:
+            "As a small supplier (under $30k/year), you are not required to register for HST. You cannot charge HST on invoices until registered.",
+          registered:
+            "You must charge HST on all taxable supplies. Your HST number will appear on invoices.",
+        },
+      },
     },
     email: {
       title: "Email",
@@ -643,8 +667,8 @@ export default {
         },
       },
       defaults: {
-        subjectTemplate: "Invoice {{number}}",
-        bodyTemplate: "Please find attached invoice {{number}}.",
+        subjectTemplate: "Invoice {'{{'}number{'}}'}",
+        bodyTemplate: "Please find attached invoice {'{{'}number{'}}'}.",
       },
       messages: {
         saved: "Saved email settings",

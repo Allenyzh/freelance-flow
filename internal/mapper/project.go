@@ -21,6 +21,7 @@ func ToProjectOutput(e models.Project) dto.ProjectOutput {
 		Status:      e.Status,
 		Deadline:    e.Deadline,
 		Tags:        tags,
+		ServiceType: e.ServiceType,
 	}
 }
 
@@ -42,6 +43,10 @@ func ToProjectEntity(input dto.CreateProjectInput) models.Project {
 	if tags == nil {
 		tags = []string{}
 	}
+	serviceType := input.ServiceType
+	if serviceType == "" {
+		serviceType = "software_development"
+	}
 	return models.Project{
 		ClientID:    input.ClientID,
 		Name:        input.Name,
@@ -51,6 +56,7 @@ func ToProjectEntity(input dto.CreateProjectInput) models.Project {
 		Status:      input.Status,
 		Deadline:    input.Deadline,
 		Tags:        tags,
+		ServiceType: serviceType,
 	}
 }
 
@@ -68,4 +74,5 @@ func ApplyProjectUpdate(e *models.Project, input dto.UpdateProjectInput) {
 	} else {
 		e.Tags = []string{}
 	}
+	e.ServiceType = input.ServiceType
 }

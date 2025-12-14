@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice {{.InvoiceNumber}}</title>
+  <style>
+    {{.CSS}}
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <!-- Header Section -->
+    <div class="header">
+      <div class="sender-info">
+        {{if .SenderName}}<div>{{.SenderName}}</div>{{end}}
+        {{if .SenderAddress}}<div>{{.SenderAddress}}</div>{{end}}
+        {{if .SenderPostalCode}}<div>{{.SenderPostalCode}}</div>{{end}}
+        {{if .SenderPhone}}<div>{{.SenderPhone}}</div>{{end}}
+        {{if .SenderEmail}}<div><a href="mailto:{{.SenderEmail}}">{{.SenderEmail}}</a></div>{{end}}
+      </div>
+      <div class="invoice-title">INVOICE</div>
+    </div>
+
+    <!-- Green Separator Line -->
+    <div class="green-line"></div>
+
+    <!-- Details Section -->
+    <div class="details-section">
+      <div class="client-info">
+        <div class="bold">INVOICE TO {{.BillingCompany}}</div>
+        {{if .BillingAddress}}<div>{{.BillingAddress}}</div>{{end}}
+        <div>{{.BillingCityLine}}</div>
+      </div>
+      <div class="invoice-meta">
+        <div><span class="bold">INVOICE#</span> {{.InvoiceNumber}}</div>
+        <div><span class="bold">DATE</span> {{.IssueDate}}</div>
+        <div><span class="bold">DUE DATE</span> {{.DueDate}}</div>
+        {{if .Terms}}<div><span class="bold">TERMS</span> {{.Terms}}</div>{{end}}
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>DESCRIPTION</th>
+          <th class="qty">QTY</th>
+          <th class="rate">RATE</th>
+          <th class="amount">AMOUNT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Items}}
+        <tr>
+          <td class="description">{{.Description}}</td>
+          <td class="qty">{{printf "%.2f" .Quantity}}</td>
+          <td class="rate">{{$.CurrencySymbol}} {{printf "%.2f" .UnitPrice}}</td>
+          <td class="amount">{{$.CurrencySymbol}} {{printf "%.2f" .Amount}}</td>
+        </tr>
+        {{end}}
+        {{/* Add empty rows to fill minimum rows (default 5) */}}
+        {{$itemCount := len .Items}}
+        {{$minRows := .MinRows}}
+        {{if eq $minRows 0}}{{$minRows = 5}}{{end}}
+        {{if lt $itemCount $minRows}}
+          {{range $i := iterate (sub $minRows $itemCount)}}
+          <tr class="empty-row">
+            <td class="description"></td>
+            <td class="qty"></td>
+            <td class="rate"></td>
+            <td class="amount"></td>
+          </tr>
+          {{end}}
+        {{end}}
+      </tbody>
+    </table>
+
+    <!-- Footer Section -->
+    <div class="footer-section">
+      <div class="message-box">
+        <div class="bold">MESSAGE</div>
+        <div class="message-content">{{.Message}}</div>
+      </div>
+      <div class="totals">
+        <div><span>SUBTOTAL</span><span>{{.CurrencySymbol}} {{printf "%.2f" .Subtotal}}</span></div>
+        <div><span>DISCOUNT</span><span>{{.CurrencySymbol}} -</span></div>
+        <div><span>TAX</span><span>{{.CurrencySymbol}} {{printf "%.2f" .TaxAmount}}</span></div>
+        <div><span>TOTAL</span><span>{{.CurrencySymbol}} {{printf "%.2f" .Total}}</span></div>
+        <div class="balance-due"><span>BALANCE DUE</span><span>{{.CurrencySymbol}} {{printf "%.2f" .Total}}</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

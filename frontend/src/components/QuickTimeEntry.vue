@@ -22,7 +22,7 @@ const { t } = useI18n()
 const description = ref('')
 const projectId = ref<number | null>(null)
 const durationInput = ref('')
-const date = ref<string>(new Date().toISOString().split('T')[0]!)
+const date = ref<string>(new Date().toLocaleDateString('en-CA'))
 const isBillable = ref(true)
 
 // Computed
@@ -128,7 +128,7 @@ function toggleBillable() {
                 <CalendarOutlined />
             </n-icon>
             <n-date-picker v-model:formatted-value="date" type="date" value-format="yyyy-MM-dd" class="date-picker"
-                :is-date-disabled="(ts: number) => ts > Date.now()" size="small" />
+                size="small" />
         </div>
 
         <div class="divider" />
@@ -227,7 +227,7 @@ function toggleBillable() {
 
 /* Date Cell */
 .date-cell {
-    min-width: 140px;
+    min-width: 120px;
 }
 
 .date-picker {
@@ -248,7 +248,7 @@ function toggleBillable() {
 
 /* Project Cell */
 .project-cell {
-    min-width: 180px;
+    min-width: 120px;
 }
 
 .project-select {
@@ -271,7 +271,7 @@ function toggleBillable() {
 /* Description Cell */
 .description-cell {
     flex: 1;
-    min-width: 200px;
+    min-width: 120px;
 }
 
 .description-input {

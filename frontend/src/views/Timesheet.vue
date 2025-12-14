@@ -33,18 +33,12 @@ const { t, locale } = useI18n()
 const showModal = ref(false)
 const editingEntry = ref<TimeEntry | null>(null)
 
-// Native Pagination
 const pagination = ref({
   pageSize: 10
 })
-const checkedRowKeys = ref<number[]>([])
 
 // Computed: paginated entries
 const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string } }>>(() => [
-  {
-    type: 'selection',
-    width: 40
-  },
   {
     title: t('timesheet.columns.date'),
     key: 'date',
@@ -231,9 +225,7 @@ function handleExportCSV() {
   }
 }
 
-function handleCheckedRowKeysChange(keys: Array<string | number>) {
-  checkedRowKeys.value = keys as number[]
-}
+
 
 onMounted(() => {
   timesheetStore.fetchTimesheet()
@@ -292,9 +284,8 @@ onMounted(() => {
       </div>
 
       <template v-else>
-        <n-data-table :columns="columns" :data="enrichedEntries" :pagination="pagination" :row-key="(row: TimeEntry) => row.id"
-          :checked-row-keys="checkedRowKeys" @update:checked-row-keys="handleCheckedRowKeysChange" size="small"
-          class="entries-table" />
+        <n-data-table :columns="columns" :data="enrichedEntries" :pagination="pagination"
+          :row-key="(row: TimeEntry) => row.id" size="small" class="entries-table" />
       </template>
     </n-card>
 

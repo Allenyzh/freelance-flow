@@ -16,15 +16,16 @@ import {
   NGi,
   NDivider,
   NDataTable,
-  NEmpty,
-  NCascader
+  NEmpty
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api'
-import type { Invoice, InvoiceItem, Client, Project, TimeEntry, CreateInvoiceInput, UpdateInvoiceInput } from '@/types'
-import type { FormInst, FormRules, DataTableColumns, CascaderOption } from 'naive-ui'
+import type { Invoice, InvoiceItem, Client, Project, TimeEntry } from '@/types'
+import { dto } from '@/wailsjs/go/models'
+import type { FormInst, FormRules, DataTableColumns } from 'naive-ui'
 import { invoiceSchema } from '@/schemas/invoice'
 import { useZodRule } from '@/utils/validation'
+import { useSettingsStore } from '@/stores/settings'
 
 interface Props {
   show: boolean
@@ -33,14 +34,14 @@ interface Props {
 }
 
 interface CreateInvoiceFromEntriesPayload {
-  input: CreateInvoiceInput
+  input: dto.CreateInvoiceInput
   timeEntryIds: number[]
 }
 
 interface Emits {
   (e: 'update:show', value: boolean): void
   (e: 'create', payload: CreateInvoiceFromEntriesPayload): void
-  (e: 'update', invoice: UpdateInvoiceInput): void
+  (e: 'update', invoice: dto.UpdateInvoiceInput): void
 }
 
 const props = defineProps<Props>()
@@ -49,6 +50,14 @@ const message = useMessage()
 const { t } = useI18n()
 
 const formRef = ref<FormInst | null>(null)
+const settingsStore = useSettingsStore()
+
+// HST/Tax settings from user preferences
+const taxEnabled = computed(() => settingsStore.settings?.taxEnabled ?? false)
+const defaultTaxRate = computed(() => {
+  if (!taxEnabled.value) return 0
+  return settingsStore.settings?.defaultTaxRate ?? 0.13
+})
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 
@@ -82,7 +91,7 @@ const isEditMode = computed(() => Boolean(props.invoice))
 const formValue = ref<InvoiceFormData>({
   clientId: null,
   number: '',
-  issueDate: new Date().toISOString().split('T')[0],
+  issueDate: new Date().toISOString().split('T')[0]!,
   dueDate: defaultDueDateFromIssueDate(new Date().toISOString().split('T')[0]!),
   items: [],
   subtotal: 0,
@@ -92,12 +101,18 @@ const formValue = ref<InvoiceFormData>({
   status: 'draft'
 })
 
+// 项目选择相关状态
+const selectedProjectId = ref<number | null>(null)
+const selectedProjectRate = ref<number>(0) // 存储选中项目的费率
+const projectOptions = ref<Array<{ label: string; value: number }>>([])
+const projectsLoading = ref(false)
+
 const rules: FormRules = {
   clientId: {
     required: true,
     type: 'number',
-    trigger: ['blur', 'change'],
-    message: t('form.validation.select', { field: t('invoices.form.client') })
+    message: t('form.validation.select', { field: t('invoices.form.client') }),
+    trigger: ['blur', 'change']
   },
   number: useZodRule(invoiceSchema.shape.number),
   issueDate: useZodRule(invoiceSchema.shape.issueDate),
@@ -112,10 +127,6 @@ const statusOptions = [
   { label: t('invoices.status.paid'), value: 'paid' },
   { label: t('invoices.status.overdue'), value: 'overdue' }
 ]
-
-const selectedProjectId = ref<number | null>(null)
-const clientProjectValue = ref<Array<string | number> | null>(null)
-const clientProjectOptions = ref<CascaderOption[]>([])
 
 const timeEntries = ref<TimeEntry[]>([])
 const timeEntriesLoading = ref(false)
@@ -134,6 +145,7 @@ const selectedHours = computed(() => {
 })
 
 const timeEntryColumns = computed<DataTableColumns<TimeEntry>>(() => [
+  { type: 'selection' },
   { title: t('invoices.selectEntries.columns.date'), key: 'date', width: 110 },
   { title: t('timesheet.form.description'), key: 'description', ellipsis: true },
   {
@@ -145,96 +157,56 @@ const timeEntryColumns = computed<DataTableColumns<TimeEntry>>(() => [
   }
 ])
 
-function rebuildClientProjectOptions() {
-  clientProjectOptions.value = props.clients.map((c): CascaderOption => ({
-    label: c.name,
-    value: c.id,
-    children: undefined
-  }))
-}
+// 保存加载的项目数据（包含费率）
+const projectsData = ref<Project[]>([])
 
+// 监听客户选择变化，加载该客户的项目列表
 watch(
-  () => props.clients,
-  () => {
-    rebuildClientProjectOptions()
-  },
-  { immediate: true }
+  () => formValue.value.clientId,
+  async (clientId) => {
+    // 重置项目选择和工时
+    selectedProjectId.value = null
+    selectedProjectRate.value = 0
+    projectOptions.value = []
+    projectsData.value = []
+    timeEntries.value = []
+    selectedTimeEntryIds.value = []
+
+    if (!clientId || isEditMode.value) return
+
+    projectsLoading.value = true
+    try {
+      const projects = await api.projects.listByClient(clientId)
+      projectsData.value = projects
+      projectOptions.value = projects.map((p: Project) => ({
+        label: p.name,
+        value: p.id
+      }))
+    } catch {
+      projectOptions.value = []
+      projectsData.value = []
+      message.error(t('projects.loadError'))
+    } finally {
+      projectsLoading.value = false
+    }
+  }
 )
 
-async function handleLoadClientProjects(option: CascaderOption): Promise<void> {
-  const clientId = option.value
-  if (typeof clientId !== 'number') return
-
-  try {
-    const projects = await api.projects.listByClient(clientId)
-    option.children = projects.map((p: Project): CascaderOption => ({
-      label: p.name,
-      value: p.id
-    }))
-  } catch {
-    option.children = []
-    message.error(t('projects.loadError'))
-  }
-}
-
-watch(() => props.invoice, (newInvoice) => {
-  if (newInvoice) {
-    formValue.value = {
-      clientId: newInvoice.clientId,
-      number: newInvoice.number,
-      issueDate: newInvoice.issueDate,
-      dueDate: newInvoice.dueDate || defaultDueDateFromIssueDate(newInvoice.issueDate),
-      items: newInvoice.items.map(i => ({ ...i })), // Deep copy items to avoid reactive issues
-      subtotal: newInvoice.subtotal,
-      taxRate: newInvoice.taxRate,
-      taxAmount: newInvoice.taxAmount,
-      total: newInvoice.total,
-      status: coerceInvoiceStatus(newInvoice.status)
-    }
-    clientProjectValue.value = null
-    selectedProjectId.value = null
-    timeEntries.value = []
-    selectedTimeEntryIds.value = []
-  } else {
-    const issueDate = new Date().toISOString().split('T')[0]!
-    formValue.value = {
-      clientId: null,
-      number: `INV-${Date.now().toString().slice(-6)}`,
-      issueDate,
-      dueDate: defaultDueDateFromIssueDate(issueDate),
-      items: [],
-      subtotal: 0,
-      taxRate: 0.13,
-      taxAmount: 0,
-      total: 0,
-      status: 'draft'
-    }
-    clientProjectValue.value = null
-    selectedProjectId.value = null
-    timeEntries.value = []
-    selectedTimeEntryIds.value = []
-  }
-}, { immediate: true })
-
+// 监听项目选择变化，加载工时记录并保存费率
 watch(
-  () => clientProjectValue.value,
-  async (value) => {
-    if (isEditMode.value) return
+  () => selectedProjectId.value,
+  async (projectId) => {
     timeEntries.value = []
     selectedTimeEntryIds.value = []
-    selectedProjectId.value = null
+    selectedProjectRate.value = 0
 
-    if (!value || value.length < 2) {
-      formValue.value.clientId = value && value.length === 1 && typeof value[0] === 'number' ? value[0] : null
-      return
+    if (!projectId || isEditMode.value) return
+
+    // 获取选中项目的费率
+    const project = projectsData.value.find(p => p.id === projectId)
+    if (project) {
+      selectedProjectRate.value = project.hourlyRate
     }
-
-    const clientId = value[0]
-    const projectId = value[1]
-    if (typeof clientId !== 'number' || typeof projectId !== 'number') return
-
-    formValue.value.clientId = clientId
-    selectedProjectId.value = projectId
 
     timeEntriesLoading.value = true
     try {
@@ -249,6 +221,61 @@ watch(
   }
 )
 
+// 监听选中工时变化，实时计算小计金额
+watch(
+  () => selectedTimeEntryIds.value,
+  () => {
+    const selectedSet = new Set(selectedTimeEntryIds.value)
+    const totalSeconds = eligibleTimeEntries.value
+      .filter((e) => selectedSet.has(e.id))
+      .reduce((sum, e) => sum + e.durationSeconds, 0)
+    const hours = totalSeconds / 3600
+    const subtotal = hours * selectedProjectRate.value
+    formValue.value.subtotal = subtotal
+    formValue.value.taxAmount = subtotal * formValue.value.taxRate
+    formValue.value.total = subtotal + formValue.value.taxAmount
+  },
+  { deep: true }
+)
+
+watch(() => props.invoice, (newInvoice) => {
+  if (newInvoice) {
+    formValue.value = {
+      clientId: newInvoice.clientId,
+      number: newInvoice.number,
+      issueDate: newInvoice.issueDate,
+      dueDate: newInvoice.dueDate || defaultDueDateFromIssueDate(newInvoice.issueDate),
+      items: newInvoice.items.map(i => ({ ...i })),
+      subtotal: newInvoice.subtotal,
+      taxRate: newInvoice.taxRate,
+      taxAmount: newInvoice.taxAmount,
+      total: newInvoice.total,
+      status: coerceInvoiceStatus(newInvoice.status)
+    }
+    selectedProjectId.value = null
+    timeEntries.value = []
+    selectedTimeEntryIds.value = []
+  } else {
+    const issueDate = new Date().toISOString().split('T')[0]!
+    formValue.value = {
+      clientId: null,
+      number: `INV-${Date.now().toString().slice(-6)}`,
+      issueDate,
+      dueDate: defaultDueDateFromIssueDate(issueDate),
+      items: [],
+      subtotal: 0,
+      taxRate: defaultTaxRate.value,
+      taxAmount: 0,
+      total: 0,
+      status: 'draft'
+    }
+    selectedProjectId.value = null
+    projectOptions.value = []
+    timeEntries.value = []
+    selectedTimeEntryIds.value = []
+  }
+}, { immediate: true })
+
 function handleClose() {
   emit('update:show', false)
 }
@@ -261,7 +288,7 @@ function handleSubmit() {
   formRef.value?.validate((errors) => {
     if (!errors) {
       if (isEditMode.value && props.invoice) {
-        emit('update', {
+        emit('update', dto.UpdateInvoiceInput.createFrom({
           id: props.invoice.id,
           clientId: formValue.value.clientId ?? 0,
           number: formValue.value.number,
@@ -278,7 +305,7 @@ function handleSubmit() {
             unitPrice: i.unitPrice,
             amount: i.amount
           }))
-        })
+        }))
         handleClose()
         return
       }
@@ -297,7 +324,7 @@ function handleSubmit() {
       }
 
       emit('create', {
-        input: {
+        input: dto.CreateInvoiceInput.createFrom({
           clientId: formValue.value.clientId,
           number: formValue.value.number,
           issueDate: formValue.value.issueDate,
@@ -308,7 +335,7 @@ function handleSubmit() {
           total: 0,
           status: formValue.value.status,
           items: []
-        },
+        }),
         timeEntryIds: selectedTimeEntryIds.value
       })
       handleClose()
@@ -320,63 +347,65 @@ function handleSubmit() {
 </script>
 
 <template>
-  <n-modal :show="show" @update:show="handleUpdateShow" preset="card" :style="{ width: '900px', maxWidth: '95vw' }"
+  <n-modal :show="show" @update:show="handleUpdateShow" preset="card"
+    :style="{ width: '900px', maxWidth: '95vw', maxHeight: '85vh' }" :content-style="{ overflow: 'auto' }"
     :title="invoice ? t('invoices.form.editTitle') : t('invoices.form.newTitle')"
-    :segmented="{ content: 'soft', footer: 'soft' }" size="huge">
+    :segmented="{ content: 'soft', footer: 'soft' }">
     <n-form ref="formRef" :model="formValue" :rules="rules" label-placement="top" size="medium">
 
-      <!-- Top Section: Client & Dates -->
-      <n-grid :x-gap="24" :cols="2">
-        <n-gi>
-          <n-form-item v-if="!invoice" :label="t('invoices.form.clientProject')" path="clientId">
-            <n-cascader
-              v-model:value="clientProjectValue"
-              :options="clientProjectOptions"
-              remote
-              :on-load="handleLoadClientProjects"
-              :placeholder="t('invoices.form.selectClientProject')"
-              clearable
-              filterable
-            />
+      <!-- Top Section: Form Fields - 2 rows x 3 cols -->
+      <n-grid :x-gap="16" :y-gap="0" :cols="3">
+        <!-- Row 1: Client, Project (create mode) / Invoice Number (edit mode), Status -->
+        <n-gi :span="1">
+          <n-form-item :label="t('invoices.form.client')" path="clientId">
+            <n-select v-model:value="formValue.clientId" :options="clients.map(c => ({ label: c.name, value: c.id }))"
+              :placeholder="t('invoices.form.selectClient')" :disabled="!!invoice" filterable clearable />
           </n-form-item>
-          <n-form-item v-else :label="t('invoices.form.client')" path="clientId">
-            <n-select
-              v-model:value="formValue.clientId"
-              :options="clients.map(c => ({ label: c.name, value: c.id }))"
-              :placeholder="t('invoices.form.selectClient')"
-              filterable
-            />
+        </n-gi>
+        <n-gi :span="1">
+          <n-form-item v-if="!invoice" :label="t('invoices.form.project')">
+            <n-select v-model:value="selectedProjectId" :options="projectOptions"
+              :placeholder="t('invoices.form.selectProject')" :loading="projectsLoading" :disabled="!formValue.clientId"
+              filterable clearable />
           </n-form-item>
-          <n-form-item :label="t('invoices.form.status')" path="status">
+          <n-form-item v-else :label="t('invoices.form.status')" path="status">
             <n-select v-model:value="formValue.status" :options="statusOptions" />
           </n-form-item>
         </n-gi>
-        <n-gi>
-          <div class="invoice-meta-box">
-            <n-grid :x-gap="12" :cols="2">
-              <n-gi :span="2">
-                <n-form-item :label="t('invoices.form.invoiceNumber')" path="number">
-                  <n-input v-model:value="formValue.number" placeholder="INV-001" />
-                </n-form-item>
-              </n-gi>
-              <n-gi>
-                <n-form-item :label="t('invoices.form.issueDate')" path="issueDate">
-                  <n-date-picker v-model:formatted-value="formValue.issueDate" type="date" value-format="yyyy-MM-dd"
-                    style="width: 100%;" />
-                </n-form-item>
-              </n-gi>
-              <n-gi>
-                <n-form-item :label="t('invoices.form.dueDate')" path="dueDate">
-                  <n-date-picker v-model:formatted-value="formValue.dueDate" type="date" value-format="yyyy-MM-dd"
-                    style="width: 100%;" />
-                </n-form-item>
-              </n-gi>
-            </n-grid>
-          </div>
+        <n-gi :span="1">
+          <n-form-item :label="t('invoices.form.status')" path="status" v-if="!invoice">
+            <n-select v-model:value="formValue.status" :options="statusOptions" />
+          </n-form-item>
+          <n-form-item v-else :label="t('invoices.form.issueDate')" path="issueDate">
+            <n-date-picker v-model:formatted-value="formValue.issueDate" type="date" value-format="yyyy-MM-dd"
+              style="width: 100%;" />
+          </n-form-item>
+        </n-gi>
+        <!-- Row 2: Invoice Number, Issue Date, Due Date -->
+        <n-gi :span="1">
+          <n-form-item :label="t('invoices.form.invoiceNumber')" path="number">
+            <n-input v-model:value="formValue.number" placeholder="INV-001" />
+          </n-form-item>
+        </n-gi>
+        <n-gi :span="1">
+          <n-form-item :label="t('invoices.form.issueDate')" path="issueDate" v-if="!invoice">
+            <n-date-picker v-model:formatted-value="formValue.issueDate" type="date" value-format="yyyy-MM-dd"
+              style="width: 100%;" />
+          </n-form-item>
+          <n-form-item v-else :label="t('invoices.form.dueDate')" path="dueDate">
+            <n-date-picker v-model:formatted-value="formValue.dueDate" type="date" value-format="yyyy-MM-dd"
+              style="width: 100%;" />
+          </n-form-item>
+        </n-gi>
+        <n-gi :span="1">
+          <n-form-item :label="t('invoices.form.dueDate')" path="dueDate" v-if="!invoice">
+            <n-date-picker v-model:formatted-value="formValue.dueDate" type="date" value-format="yyyy-MM-dd"
+              style="width: 100%;" />
+          </n-form-item>
         </n-gi>
       </n-grid>
 
-      <n-divider style="margin: 24px 0" />
+      <n-divider style="margin: 12px 0" />
 
       <!-- Create Mode: Pick time entries -->
       <template v-if="!invoice">
@@ -388,20 +417,14 @@ function handleSubmit() {
         </div>
 
         <div class="items-container">
-          <n-empty v-if="!selectedProjectId" :description="t('invoices.form.timeEntries.selectProjectHint')" size="small" />
+          <n-empty v-if="!selectedProjectId" :description="t('invoices.form.timeEntries.selectProjectHint')"
+            size="small" />
           <n-empty v-else-if="!timeEntriesLoading && eligibleTimeEntries.length === 0"
             :description="t('invoices.form.timeEntries.empty')" size="small" />
-          <n-data-table
-            v-else
-            :loading="timeEntriesLoading"
-            :columns="timeEntryColumns"
-            :data="eligibleTimeEntries"
-            :row-key="(row: TimeEntry) => row.id"
-            checkable
-            :checked-row-keys="selectedTimeEntryIds"
-            @update:checked-row-keys="(keys) => selectedTimeEntryIds = keys as number[]"
-            :max-height="320"
-          />
+          <n-data-table v-else :loading="timeEntriesLoading" :columns="timeEntryColumns" :data="eligibleTimeEntries"
+            :row-key="(row: TimeEntry) => row.id" :checked-row-keys="selectedTimeEntryIds"
+            @update:checked-row-keys="(keys: Array<string | number>) => selectedTimeEntryIds = keys as number[]"
+            :max-height="200" />
         </div>
       </template>
 
@@ -415,48 +438,40 @@ function handleSubmit() {
         </div>
         <div class="items-container">
           <n-empty v-if="formValue.items.length === 0" :description="t('invoices.form.items.empty')" size="small" />
-          <n-data-table
-            v-else
-            :columns="[
-              { title: t('invoices.form.items.description'), key: 'description' },
-              { title: t('invoices.form.items.qty'), key: 'quantity', width: 90, align: 'right', render: (row: InvoiceItem) => row.quantity.toFixed(2) },
-              { title: t('invoices.form.items.rate'), key: 'unitPrice', width: 110, align: 'right', render: (row: InvoiceItem) => row.unitPrice.toFixed(2) },
-              { title: t('invoices.form.items.amount'), key: 'amount', width: 110, align: 'right', render: (row: InvoiceItem) => row.amount.toFixed(2) }
-            ]"
-            :data="formValue.items"
-            :row-key="(row: InvoiceItem) => row.id"
-            :max-height="260"
-          />
+          <n-data-table v-else :columns="[
+            { title: t('invoices.form.items.description'), key: 'description' },
+            { title: t('invoices.form.items.qty'), key: 'quantity', width: 90, align: 'right', render: (row: InvoiceItem) => row.quantity.toFixed(2) },
+            { title: t('invoices.form.items.rate'), key: 'unitPrice', width: 110, align: 'right', render: (row: InvoiceItem) => row.unitPrice.toFixed(2) },
+            { title: t('invoices.form.items.amount'), key: 'amount', width: 110, align: 'right', render: (row: InvoiceItem) => row.amount.toFixed(2) }
+          ]" :data="formValue.items" :row-key="(row: InvoiceItem) => row.id" :max-height="260" />
           <n-text depth="3" style="display:block; margin-top: 8px;">
             {{ t('invoices.form.items.editHint') }}
           </n-text>
         </div>
       </template>
 
-      <!-- Totals Section -->
-      <div class="totals-section">
-        <div class="totals-grid">
-          <div class="total-row">
-            <span class="label">{{ t('invoices.form.subtotal') }}</span>
-            <span class="value">${{ formValue.subtotal.toFixed(2) }}</span>
-          </div>
-          <div class="total-row">
+      <!-- Totals Section - Horizontal Layout -->
+      <div class="totals-row">
+        <div class="total-item">
+          <span class="label">{{ t('invoices.form.subtotal') }}</span>
+          <span class="value">${{ formValue.subtotal.toFixed(2) }}</span>
+        </div>
+        <template v-if="taxEnabled">
+          <div class="total-item">
             <span class="label">{{ t('invoices.form.taxRate') }}</span>
-            <div class="value" style="width: 100px;">
-              <n-input-number v-model:value="formValue.taxRate" :step="0.01" :min="0" :max="1" size="small"
-                :show-button="false">
-                <template #suffix>%</template>
-              </n-input-number>
-            </div>
+            <n-input-number v-model:value="formValue.taxRate" :step="0.01" :min="0" :max="1" size="small"
+              :show-button="false" style="width: 80px;">
+              <template #suffix>%</template>
+            </n-input-number>
           </div>
-          <div class="total-row">
+          <div class="total-item">
             <span class="label">{{ t('invoices.form.taxAmount') }}</span>
             <span class="value">${{ formValue.taxAmount.toFixed(2) }}</span>
           </div>
-          <div class="total-row grand-total">
-            <span class="label">{{ t('invoices.form.total') }}</span>
-            <span class="value">${{ formValue.total.toFixed(2) }}</span>
-          </div>
+        </template>
+        <div class="total-item grand-total">
+          <span class="label">{{ t('invoices.form.total') }}</span>
+          <span class="value">${{ formValue.total.toFixed(2) }}</span>
         </div>
       </div>
 
@@ -482,56 +497,54 @@ function handleSubmit() {
 }
 
 .items-header {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .items-container {
   background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 6px;
+  padding: 10px;
   border: 1px solid var(--n-divider-color);
 }
 
-.totals-section {
+.totals-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.totals-grid {
-  width: 300px;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 24px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--n-divider-color);
 }
 
-.total-row .label {
+.total-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.total-item .label {
   color: var(--n-text-color-3);
+  font-size: 13px;
 }
 
-.total-row .value {
+.total-item .value {
   font-weight: 500;
   color: var(--n-text-color-1);
 }
 
-.total-row.grand-total {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--n-divider-color);
+.total-item.grand-total {
+  padding-left: 16px;
+  border-left: 2px solid var(--n-primary-color);
 }
 
-.total-row.grand-total .label {
-  font-size: 16px;
-  font-weight: 700;
+.total-item.grand-total .label {
+  font-weight: 600;
   color: var(--n-text-color-1);
 }
 
-.total-row.grand-total .value {
-  font-size: 20px;
+.total-item.grand-total .value {
+  font-size: 18px;
   font-weight: 700;
   color: var(--n-primary-color);
 }

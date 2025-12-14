@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   NForm,
   NFormItem,
@@ -9,9 +9,12 @@ import {
   useMessage,
   NCard,
   NSwitch,
+  NSelect,
+  NAlert,
 } from "naive-ui";
 import { useSettingsStore } from "@/stores/settings";
 import type { UserSettings } from "@/types";
+import { dto } from "@/wailsjs/go/models";
 import { useI18n } from "vue-i18n";
 
 const settingsStore = useSettingsStore();
@@ -34,10 +37,19 @@ const form = ref<UserSettings>({
   senderPostalCode: "",
   invoiceTerms: "",
   defaultMessageTemplate: "",
+  hstRegistered: false,
+  hstNumber: "",
+  taxEnabled: false,
+  expectedIncome: "",
 });
 
 const saving = ref(false);
-const useProfileForInvoice = ref(true);
+
+const expectedIncomeOptions = computed(() => [
+  { label: t("settings.invoice.hst.incomeOptions.under30k"), value: "under30k" },
+  { label: t("settings.invoice.hst.incomeOptions.over30k"), value: "over30k" },
+  { label: t("settings.invoice.hst.incomeOptions.unsure"), value: "unsure" },
+]);
 
 onMounted(async () => {
   await settingsStore.fetchSettings();
@@ -53,6 +65,10 @@ onMounted(async () => {
       senderPhone: settings.senderPhone,
       senderEmail: settings.senderEmail,
       senderPostalCode: settings.senderPostalCode,
+      hstRegistered: settings.hstRegistered,
+      hstNumber: settings.hstNumber,
+      taxEnabled: settings.taxEnabled,
+      expectedIncome: settings.expectedIncome,
     };
   } else {
     form.value = {
@@ -66,7 +82,7 @@ onMounted(async () => {
 async function handleSave() {
   saving.value = true;
   try {
-    const currentSettings = settingsStore.settings || {};
+    const currentSettings = settingsStore.settings || new dto.UserSettings();
     const updatedSettings = {
       ...currentSettings,
       invoiceTerms: form.value.invoiceTerms,
@@ -77,6 +93,10 @@ async function handleSave() {
       senderPhone: form.value.senderPhone,
       senderEmail: form.value.senderEmail,
       senderPostalCode: form.value.senderPostalCode,
+      hstRegistered: form.value.hstRegistered,
+      hstNumber: form.value.hstNumber,
+      taxEnabled: form.value.taxEnabled,
+      expectedIncome: form.value.expectedIncome,
     };
     await settingsStore.saveSettings(updatedSettings);
     message.success(t("settings.invoice.messages.saved"));
@@ -93,21 +113,13 @@ async function handleSave() {
     <NCard :title="t('settings.invoice.defaultsCardTitle')" :bordered="false">
       <NForm ref="formRef" label-placement="top">
         <NFormItem :label="t('settings.invoice.fields.invoiceTerms')">
-          <NInput
-            type="textarea"
-            v-model:value="form.invoiceTerms"
-            :autosize="{ minRows: 2, maxRows: 4 }"
-            :disabled="saving"
-          />
+          <NInput type="textarea" v-model:value="form.invoiceTerms" :autosize="{ minRows: 2, maxRows: 4 }"
+            :disabled="saving" />
         </NFormItem>
 
         <NFormItem :label="t('settings.invoice.fields.defaultMessageTemplate')">
-          <NInput
-            type="textarea"
-            v-model:value="form.defaultMessageTemplate"
-            :autosize="{ minRows: 3, maxRows: 6 }"
-            :disabled="saving"
-          />
+          <NInput type="textarea" v-model:value="form.defaultMessageTemplate" :autosize="{ minRows: 3, maxRows: 6 }"
+            :disabled="saving" />
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">
@@ -137,6 +149,48 @@ async function handleSave() {
         </NFormItem>
         <NFormItem :label="t('settings.invoice.fields.senderPostalCode')">
           <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
+        </NFormItem>
+
+        <NSpace justify="end" style="margin-top: 24px">
+          <NButton type="primary" :loading="saving" @click="handleSave">
+            {{ t("common.save") }}
+          </NButton>
+        </NSpace>
+      </NForm>
+    </NCard>
+
+    <!-- HST/Tax Settings Card -->
+    <NCard :title="t('settings.invoice.hst.cardTitle')" :bordered="false" style="margin-top: 16px">
+      <NForm label-placement="top">
+        <NAlert v-if="!form.hstRegistered" type="info" :show-icon="true" style="margin-bottom: 16px">
+          {{ t('settings.invoice.hst.info.notRegistered') }}
+        </NAlert>
+        <NAlert v-else type="warning" :show-icon="true" style="margin-bottom: 16px">
+          {{ t('settings.invoice.hst.info.registered') }}
+        </NAlert>
+
+        <NFormItem :label="t('settings.invoice.hst.registered')">
+          <NSwitch v-model:value="form.hstRegistered" :disabled="saving" />
+          <span style="margin-left: 12px; color: #666; font-size: 13px;">
+            {{ t('settings.invoice.hst.registeredHint') }}
+          </span>
+        </NFormItem>
+
+        <NFormItem v-if="form.hstRegistered" :label="t('settings.invoice.hst.number')">
+          <NInput v-model:value="form.hstNumber" :placeholder="t('settings.invoice.hst.numberPlaceholder')"
+            :disabled="saving" />
+        </NFormItem>
+
+        <NFormItem :label="t('settings.invoice.hst.expectedIncome')">
+          <NSelect v-model:value="form.expectedIncome" :options="expectedIncomeOptions"
+            :placeholder="t('settings.invoice.hst.expectedIncomePlaceholder')" clearable :disabled="saving" />
+        </NFormItem>
+
+        <NFormItem :label="t('settings.invoice.hst.taxEnabled')">
+          <NSwitch v-model:value="form.taxEnabled" :disabled="saving || !form.hstRegistered" />
+          <span style="margin-left: 12px; color: #666; font-size: 13px;">
+            {{ t('settings.invoice.hst.taxEnabledHint') }}
+          </span>
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">

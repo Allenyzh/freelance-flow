@@ -2,7 +2,7 @@
 import { h, onMounted, ref, computed } from 'vue'
 import {
   NButton, NDataTable, NSpace, NText, NNumberAnimation, NIcon,
-  NModal, NInput, NAvatar, NRow, NCol, NEmpty, NStatistic,
+  NModal, NInput, NRow, NCol, NEmpty, NStatistic,
   type DataTableColumns, useMessage
 } from 'naive-ui'
 import PageContainer from '@/components/PageContainer.vue'
@@ -66,6 +66,10 @@ const filteredInvoices = computed(() => {
   return result
 })
 
+const hasActiveFilters = computed(() => {
+  return searchQuery.value !== '' || statusFilter.value !== null
+})
+
 function handleNewInvoice() {
   editingInvoice.value = null
   showModal.value = true
@@ -112,16 +116,16 @@ async function confirmDownload() {
       exportingInvoice.value.id,
       messageDraft.value
     )
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `INV-${exportingInvoice.value.number}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success(t('invoices.downloaded'))
+    // Use native save dialog and auto-open
+    const { SaveAndOpenPDF } = await import('@/wailsjs/go/main/App')
+    const savedPath = await SaveAndOpenPDF(base64, `INV-${exportingInvoice.value.number}.pdf`)
+    if (savedPath) {
+      message.success(t('invoices.downloaded'))
+    }
+    // If savedPath is empty, user cancelled - no error
     messageModalVisible.value = false
-  } catch {
+  } catch (e) {
+    console.error('PDF download error:', e)
     message.error(t('invoices.downloadError'))
   } finally {
     pdfLoading.value = false
@@ -175,7 +179,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
   {
     title: () => t('invoices.columns.invoiceNumber'),
     key: 'number',
-    width: 140,
+    width: 160,
     render(row) {
       return h(
         'div',
@@ -193,23 +197,15 @@ const columns: DataTableColumns<EnrichedInvoice> = [
   {
     title: () => t('invoices.columns.client'),
     key: 'clientName',
-    width: 250,
+    width: 120,
     render(row) {
-      const initial = row.clientName ? row.clientName.charAt(0).toUpperCase() : '?'
-      return h('div', { style: 'display: flex; align-items: center; gap: 12px;' }, [
-        h(NAvatar, {
-          size: 32,
-          round: true,
-          style: 'background-color: var(--n-primary-color-suppl); color: var(--n-primary-color); font-weight: 600;'
-        }, { default: () => initial }),
-        h(NText, { style: 'font-weight: 500;' }, { default: () => row.clientName })
-      ])
+      return h(NText, { style: 'font-weight: 500;' }, { default: () => row.clientName })
     }
   },
   {
     title: () => t('invoices.columns.issueDate'),
     key: 'issueDate',
-    width: 150,
+    width: 130,
     render(row) {
       return h(NText, { depth: 3 }, { default: () => row.issueDate })
     }
@@ -218,7 +214,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
     title: () => t('invoices.columns.amount'),
     key: 'total',
     align: 'right',
-    width: 150,
+    width: 130,
     render(row) {
       return h(
         NText,
@@ -270,12 +266,13 @@ const columns: DataTableColumns<EnrichedInvoice> = [
     }
   },
   {
-    title: '',
+    title: () => t('invoices.columns.actions'),
     key: 'actions',
-    width: 120,
+    width: 140,
+    fixed: 'right' as const,
     align: 'right',
     render(row) {
-      return h(NSpace, { size: 'small', justify: 'end' }, {
+      return h(NSpace, { size: 4, justify: 'end', wrap: false }, {
         default: () => [
           h(
             NButton,
@@ -333,8 +330,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
     </template>
 
     <InvoiceFormModal v-model:show="showModal" :invoice="editingInvoice" :clients="clients"
-      @create="handleCreateInvoiceFromEntries"
-      @update="handleUpdateInvoice" />
+      @create="handleCreateInvoiceFromEntries" @update="handleUpdateInvoice" />
 
     <!-- Stats Grid moved to scrollable content -->
     <div class="view-content">
@@ -401,8 +397,9 @@ const columns: DataTableColumns<EnrichedInvoice> = [
           :row-class-name="() => 'invoice-row'" class="invoice-table">
           <template #empty>
             <div class="empty-state">
-              <n-empty :description="t('invoices.empty.description')" size="large">
-                <template #extra>
+              <n-empty :description="hasActiveFilters ? t('invoices.empty.noMatch') : t('invoices.empty.description')"
+                size="large">
+                <template #extra v-if="!hasActiveFilters">
                   <n-button dashed size="small" @click="handleNewInvoice">{{ t('invoices.empty.action') }}</n-button>
                 </template>
               </n-empty>
@@ -427,7 +424,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
         <n-space justify="end">
           <n-button quaternary @click="entrySelectorVisible = false">{{ t('invoices.selectEntries.cancel') }}</n-button>
           <n-button type="primary" :loading="loading" @click="applyEntrySelection">{{ t('invoices.selectEntries.apply')
-            }}</n-button>
+          }}</n-button>
         </n-space>
       </template>
     </n-modal>

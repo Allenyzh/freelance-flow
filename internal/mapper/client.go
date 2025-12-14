@@ -9,16 +9,21 @@ import (
 // ToClientOutput converts a Client entity to ClientOutput DTO.
 func ToClientOutput(e models.Client) dto.ClientOutput {
 	return dto.ClientOutput{
-		ID:            e.ID,
-		Name:          e.Name,
-		Email:         e.Email,
-		Website:       e.Website,
-		Avatar:        e.Avatar,
-		ContactPerson: e.ContactPerson,
-		Address:       e.Address,
-		Currency:      e.Currency,
-		Status:        e.Status,
-		Notes:         e.Notes,
+		ID:                e.ID,
+		Name:              e.Name,
+		Email:             e.Email,
+		Website:           e.Website,
+		Avatar:            e.Avatar,
+		ContactPerson:     e.ContactPerson,
+		Address:           e.Address,
+		Currency:          e.Currency,
+		Status:            e.Status,
+		Notes:             e.Notes,
+		BillingCompany:    e.BillingCompany,
+		BillingAddress:    e.BillingAddress,
+		BillingCity:       e.BillingCity,
+		BillingProvince:   e.BillingProvince,
+		BillingPostalCode: e.BillingPostalCode,
 	}
 }
 
@@ -37,15 +42,20 @@ func ToClientOutputList(entities []models.Client) []dto.ClientOutput {
 // ToClientEntity converts CreateClientInput DTO to Client entity.
 func ToClientEntity(input dto.CreateClientInput) models.Client {
 	return models.Client{
-		Name:          input.Name,
-		Email:         input.Email,
-		Website:       input.Website,
-		Avatar:        input.Avatar,
-		ContactPerson: input.ContactPerson,
-		Address:       input.Address,
-		Currency:      input.Currency,
-		Status:        input.Status,
-		Notes:         input.Notes,
+		Name:              input.Name,
+		Email:             input.Email,
+		Website:           input.Website,
+		Avatar:            input.Avatar,
+		ContactPerson:     input.ContactPerson,
+		Address:           input.Address,
+		Currency:          input.Currency,
+		Status:            input.Status,
+		Notes:             input.Notes,
+		BillingCompany:    input.BillingCompany,
+		BillingAddress:    input.BillingAddress,
+		BillingCity:       input.BillingCity,
+		BillingProvince:   input.BillingProvince,
+		BillingPostalCode: input.BillingPostalCode,
 	}
 }
 
@@ -60,4 +70,9 @@ func ApplyClientUpdate(e *models.Client, input dto.UpdateClientInput) {
 	e.Currency = input.Currency
 	e.Status = input.Status
 	e.Notes = input.Notes
+	e.BillingCompany = input.BillingCompany
+	e.BillingAddress = input.BillingAddress
+	e.BillingCity = input.BillingCity
+	e.BillingProvince = input.BillingProvince
+	e.BillingPostalCode = input.BillingPostalCode
 }

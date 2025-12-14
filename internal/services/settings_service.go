@@ -89,6 +89,22 @@ func normalizeUserSettings(settings models.UserSettings) models.UserSettings {
 	settings.InvoiceTerms = trim(settings.InvoiceTerms)
 	settings.DefaultMessageTemplate = trim(settings.DefaultMessageTemplate)
 
+	// Normalize HST fields
+	settings.HstNumber = trim(settings.HstNumber)
+	// Validate ExpectedIncome - only allow valid values
+	validIncomeValues := map[string]bool{"under30k": true, "over30k": true, "unsure": true, "": true}
+	if !validIncomeValues[settings.ExpectedIncome] {
+		settings.ExpectedIncome = ""
+	}
+	// If HST is registered, tax should be enabled by default
+	if settings.HstRegistered && !settings.TaxEnabled {
+		settings.TaxEnabled = true
+	}
+	// Default tax rate to 13% (Ontario HST) if tax is enabled but rate is 0
+	if settings.TaxEnabled && settings.DefaultTaxRate == 0 {
+		settings.DefaultTaxRate = 0.13
+	}
+
 	if settings.InvoiceTerms == "" {
 		settings.InvoiceTerms = "Due upon receipt"
 	}

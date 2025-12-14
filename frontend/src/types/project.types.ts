@@ -4,9 +4,17 @@
 import { dto } from "@/wailsjs/go/models";
 
 // Re-export Wails DTO types with frontend-friendly aliases
-export type Project = dto.ProjectOutput;
-export type CreateProjectInput = dto.CreateProjectInput;
-export type UpdateProjectInput = dto.UpdateProjectInput;
+export type Project = dto.ProjectOutput & {
+  serviceType?: string;
+};
+
+export type CreateProjectInput = dto.CreateProjectInput & {
+  serviceType?: string;
+};
+
+export type UpdateProjectInput = dto.UpdateProjectInput & {
+  serviceType?: string;
+};
 
 // Service Interface
 export interface IProjectService {
