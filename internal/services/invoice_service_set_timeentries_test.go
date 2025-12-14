@@ -21,8 +21,8 @@ func TestInvoiceService_SetTimeEntries_RecalculateTotals(t *testing.T) {
 
 	schema := []string{
 		`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, username TEXT, password_hash TEXT, settings_json TEXT DEFAULT '{}');`,
-		`CREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT);`,
-		`CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, client_id INTEGER, name TEXT, hourly_rate REAL, currency TEXT);`,
+		`CREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, billing_company TEXT, billing_address TEXT, billing_city TEXT, billing_province TEXT, billing_postal_code TEXT);`,
+		`CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, client_id INTEGER, name TEXT, hourly_rate REAL, currency TEXT, service_type TEXT);`,
 		`CREATE TABLE invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, client_id INTEGER, number TEXT, issue_date TEXT, due_date TEXT, subtotal REAL, tax_rate REAL, tax_amount REAL, total REAL, status TEXT, items_json TEXT);`,
 		`CREATE TABLE time_entries (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

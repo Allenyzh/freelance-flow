@@ -13,8 +13,9 @@
     <!-- Header Section -->
     <div class="header">
       <div class="sender-info">
+        {{if .SenderCompany}}<div>{{.SenderCompany}}</div>{{end}}
         {{if .SenderName}}<div>{{.SenderName}}</div>{{end}}
-        {{if .SenderAddress}}<div>{{.SenderAddress}}</div>{{end}}
+        {{if .SenderAddress}}<div class="address-line">{{.SenderAddress}}</div>{{end}}
         {{if .SenderPostalCode}}<div>{{.SenderPostalCode}}</div>{{end}}
         {{if .SenderPhone}}<div>{{.SenderPhone}}</div>{{end}}
         {{if .SenderEmail}}<div><a href="mailto:{{.SenderEmail}}">{{.SenderEmail}}</a></div>{{end}}
@@ -29,7 +30,7 @@
     <div class="details-section">
       <div class="client-info">
         <div class="bold">INVOICE TO {{.BillingCompany}}</div>
-        {{if .BillingAddress}}<div>{{.BillingAddress}}</div>{{end}}
+        {{if .BillingAddress}}<div class="address-line">{{.BillingAddress}}</div>{{end}}
         <div>{{.BillingCityLine}}</div>
       </div>
       <div class="invoice-meta">

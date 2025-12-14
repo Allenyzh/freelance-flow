@@ -1,4 +1,4 @@
-package services
+package pdf
 
 import (
 	"bytes"

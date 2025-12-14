@@ -1,5 +1,21 @@
 export namespace dto {
 	
+	export class ChangePasswordInput {
+	    id: number;
+	    oldPassword: string;
+	    newPassword: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ChangePasswordInput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.oldPassword = source["oldPassword"];
+	        this.newPassword = source["newPassword"];
+	    }
+	}
 	export class ClientOutput {
 	    id: number;
 	    name: string;
@@ -256,6 +272,7 @@ export namespace dto {
 	export class InvoiceOutput {
 	    id: number;
 	    clientId: number;
+	    projectId: number;
 	    number: string;
 	    issueDate: string;
 	    dueDate: string;
@@ -274,6 +291,7 @@ export namespace dto {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.clientId = source["clientId"];
+	        this.projectId = source["projectId"];
 	        this.number = source["number"];
 	        this.issueDate = source["issueDate"];
 	        this.dueDate = source["dueDate"];
@@ -672,6 +690,26 @@ export namespace dto {
 	        this.description = source["description"];
 	        this.billable = source["billable"];
 	        this.invoiced = source["invoiced"];
+	    }
+	}
+	export class UpdateUserInput {
+	    id: number;
+	    username: string;
+	    email: string;
+	    avatarUrl: string;
+	    settingsJson: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateUserInput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.username = source["username"];
+	        this.email = source["email"];
+	        this.avatarUrl = source["avatarUrl"];
+	        this.settingsJson = source["settingsJson"];
 	    }
 	}
 	export class UserListItem {

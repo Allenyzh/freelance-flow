@@ -33,6 +33,7 @@ func ToInvoiceOutput(e models.Invoice) dto.InvoiceOutput {
 	return dto.InvoiceOutput{
 		ID:        e.ID,
 		ClientID:  e.ClientID,
+		ProjectID: 0, // Not available in entity model logic, updated by service if needed
 		Number:    e.Number,
 		IssueDate: e.IssueDate,
 		DueDate:   e.DueDate,

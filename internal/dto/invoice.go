@@ -50,6 +50,7 @@ type UpdateInvoiceInput struct {
 type InvoiceOutput struct {
 	ID        int                 `json:"id"`
 	ClientID  int                 `json:"clientId"`
+	ProjectID int                 `json:"projectId"` // 0 if mixed or not set, but usually linked to one project
 	Number    string              `json:"number"`
 	IssueDate string              `json:"issueDate"`
 	DueDate   string              `json:"dueDate"`

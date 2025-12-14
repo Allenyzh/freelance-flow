@@ -48,6 +48,10 @@ body {
   text-decoration: underline;
 }
 
+.address-line {
+  white-space: pre-wrap;
+}
+
 .invoice-title {
   color: #ffffff;
   font-size: 50pt;

@@ -9,6 +9,7 @@ export default {
     saved: "Saved",
     cancel: "Cancel",
     confirm: "Confirm",
+    confirmDelete: "Are you sure you want to delete this item?",
     refresh: "Refresh",
     loading: "Loading...",
     noData: "No data",
@@ -257,6 +258,8 @@ export default {
     noInvoices: "No invoices found",
     updateSuccess: "Invoice updated successfully",
     createSuccess: "Invoice created successfully",
+    deleteSuccess: "Invoice deleted successfully",
+    deleteError: "Failed to delete invoice",
     saveError: "Failed to save invoice",
     downloading: "Downloading {number}...",
     entriesUpdated: "Entries updated successfully",
@@ -305,6 +308,10 @@ export default {
       amount: "Amount",
       status: "Status",
       actions: "Actions",
+    },
+    actions: {
+      markAsPaid: "Mark as Paid",
+      markAsUnpaid: "Mark as Unpaid",
     },
     status: {
       draft: "Draft",
@@ -575,18 +582,27 @@ export default {
     profile: {
       title: "Profile",
       description: "Your personal information and company details",
-      personalCardTitle: "Personal Information",
-      companyCardTitle: "Company Information",
+      tabs: {
+        account: "Account Settings",
+      },
+      password: {
+        title: "Change Password",
+        current: "Current Password",
+        new: "New Password",
+        confirm: "Confirm New Password",
+        changeButton: "Change Password",
+      },
       fields: {
-        name: "Name",
+        username: "Username",
+        avatarUrl: "Avatar URL",
         email: "Email",
-        phone: "Phone",
-        company: "Company",
-        address: "Address",
-        postalCode: "Postal Code",
+        randomizeAvatar: "Randomize",
+        uploadAvatar: "Upload",
       },
       validation: {
         invalidEmail: "Invalid email format",
+        passwordMismatch: "New passwords do not match",
+        passwordRequired: "Both old and new passwords are required",
       },
       messages: {
         saved: "Saved profile settings",
@@ -645,7 +661,7 @@ export default {
       providerCardTitle: "Email Provider",
       resendCardTitle: "Resend Configuration",
       resendDomainTip:
-        "Note: You must verify your domain in the Resend dashboard. Only emails from verified domains (e.g., billing@yourdomain.com) are allowed. For testing, you can use onboarding@resend.dev (sends to yourself only).",
+        "Note: You must verify your domain in the Resend dashboard. Only emails from verified domains (e.g., billing{'@'}yourdomain.com) are allowed. For testing, you can use onboarding{'@'}resend.dev (sends to yourself only).",
       smtpCardTitle: "SMTP Configuration",
       fields: {
         provider: "Provider",
@@ -679,7 +695,7 @@ export default {
       validation: {
         required: "This field is required",
         invalidFormat:
-          "Invalid format. Use 'Name <email@example.com>' or 'email@example.com'",
+          "Invalid format. Use 'Name <email{'@'}example.com>' or 'email{'@'}example.com'",
         fixErrors: "Please fix form errors",
       },
     },

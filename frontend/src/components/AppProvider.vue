@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { NConfigProvider, NMessageProvider, NDialogProvider, NNotificationProvider, NGlobalStyle, darkTheme } from 'naive-ui'
 import { lightThemeOverrides, darkThemeOverrides } from '@/theme'
 import { zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
@@ -18,20 +18,20 @@ const naiveLocale = computed(() => appStore.locale === 'zh-CN' ? zhCN : enUS)
 const naiveDateLocale = computed(() => appStore.locale === 'zh-CN' ? dateZhCN : dateEnUS)
 
 // Watch for locale changes to update vue-i18n
-appStore.$subscribe((mutation, state) => {
-  if (state.locale !== locale.value) {
-    locale.value = state.locale
-  }
-})
+watch(
+  () => appStore.locale,
+  (newLocale) => {
+    if (newLocale !== locale.value) {
+      locale.value = newLocale
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
-  <n-config-provider
-    :theme="theme"
-    :theme-overrides="themeOverrides"
-    :locale="naiveLocale"
-    :date-locale="naiveDateLocale"
-  >
+  <n-config-provider :theme="theme" :theme-overrides="themeOverrides" :locale="naiveLocale"
+    :date-locale="naiveDateLocale">
     <n-global-style />
     <n-notification-provider>
       <n-message-provider>

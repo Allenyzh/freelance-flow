@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   NForm,
   NInput,
@@ -15,7 +15,7 @@ import {
   NAlert,
 } from "naive-ui";
 import { useInvoiceEmailSettingsStore } from "@/stores/invoiceEmailSettings";
-import type { InvoiceEmailSettings, EmailProvider } from "@/types";
+import type { InvoiceEmailSettings } from "@/types";
 import { useI18n } from "vue-i18n";
 
 const store = useInvoiceEmailSettingsStore();
@@ -56,11 +56,11 @@ const rules = {
   },
 };
 
-const providerOptions: { label: string; value: EmailProvider }[] = [
+const providerOptions = computed(() => [
   { label: t("settings.email.options.provider.mailto"), value: "mailto" },
   { label: t("settings.email.options.provider.resend"), value: "resend" },
   { label: t("settings.email.options.provider.smtp"), value: "smtp" },
-];
+]);
 
 async function handleSave() {
   try {
@@ -133,17 +133,18 @@ async function handleSave() {
             <NInput v-model:value="form.replyTo" :disabled="saving" />
           </NFormItemGi>
 
-          <NFormItemGi :span="2" :label="t('settings.email.fields.subjectTemplate')" path="subjectTemplate">
+          <!-- Template Settings -->
+          <NFormItemGi :label="t('settings.email.fields.subjectTemplate')" path="subjectTemplate">
             <NInput v-model:value="form.subjectTemplate" :disabled="saving" />
           </NFormItemGi>
 
-          <NFormItemGi :label="t('settings.email.fields.bodyTemplate')" path="bodyTemplate">
-            <NInput type="textarea" v-model:value="form.bodyTemplate" :autosize="{ minRows: 2, maxRows: 4 }"
+          <NFormItemGi :label="t('settings.email.fields.signature')" path="signature">
+            <NInput type="textarea" v-model:value="form.signature" :autosize="{ minRows: 1, maxRows: 3 }"
               :disabled="saving" />
           </NFormItemGi>
 
-          <NFormItemGi :label="t('settings.email.fields.signature')" path="signature">
-            <NInput type="textarea" v-model:value="form.signature" :autosize="{ minRows: 2, maxRows: 4 }"
+          <NFormItemGi :span="2" :label="t('settings.email.fields.bodyTemplate')" path="bodyTemplate">
+            <NInput type="textarea" v-model:value="form.bodyTemplate" :autosize="{ minRows: 4, maxRows: 8 }"
               :disabled="saving" />
           </NFormItemGi>
         </NGrid>

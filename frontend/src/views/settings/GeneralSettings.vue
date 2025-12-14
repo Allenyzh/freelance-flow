@@ -36,6 +36,10 @@ const form = ref<UserSettings>({
   senderPostalCode: "",
   invoiceTerms: "",
   defaultMessageTemplate: "",
+  hstRegistered: false,
+  hstNumber: "",
+  taxEnabled: false,
+  expectedIncome: "",
 });
 
 const saving = ref(false);
@@ -105,7 +109,11 @@ async function handleSave() {
   saving.value = true;
   try {
     // Only save the general settings fields
-    const currentSettings = settingsStore.settings || {};
+    const currentSettings = settingsStore.settings;
+    if (!currentSettings) {
+      message.error(t("settings.general.messages.loadError"));
+      return;
+    }
     const updatedSettings = {
       ...currentSettings,
       currency: form.value.currency,
@@ -136,63 +144,34 @@ function handleThemeChange(value: string) {
     <NCard :title="t('settings.general.cardTitle')" :bordered="false">
       <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
         <NFormItem :label="t('settings.general.fields.currency')" path="currency">
-          <NSelect
-            v-model:value="form.currency"
-            :options="currencyOptions"
-            :disabled="saving"
-          />
+          <NSelect v-model:value="form.currency" :options="currencyOptions" :disabled="saving" />
         </NFormItem>
 
         <NFormItem :label="t('settings.general.fields.defaultTaxRate')" path="defaultTaxRate">
-          <NInputNumber
-            v-model:value="form.defaultTaxRate"
-            :min="0"
-            :max="1"
-            :step="0.01"
-            :disabled="saving"
-          />
+          <NInputNumber v-model:value="form.defaultTaxRate" :min="0" :max="1" :step="0.01" :disabled="saving" />
           <div class="hint">{{ t("settings.general.hints.taxRate") }}</div>
         </NFormItem>
 
         <NFormItem :label="t('settings.general.fields.dateFormat')" path="dateFormat">
-          <NSelect
-            v-model:value="form.dateFormat"
-            :options="dateFormatOptions"
-            :disabled="saving"
-          />
+          <NSelect v-model:value="form.dateFormat" :options="dateFormatOptions" :disabled="saving" />
         </NFormItem>
 
         <NFormItem :label="t('settings.general.fields.timezone')" path="timezone">
-          <NSelect
-            v-model:value="form.timezone"
-            :options="timezoneOptions"
-            filterable
-            :disabled="saving"
-          />
+          <NSelect v-model:value="form.timezone" :options="timezoneOptions" filterable :disabled="saving" />
         </NFormItem>
 
         <NFormItem :label="t('settings.general.fields.theme')">
-          <NSelect
-            :value="appStore.theme"
-            :options="[
-              { label: t('settings.general.options.theme.light'), value: 'light' },
-              { label: t('settings.general.options.theme.dark'), value: 'dark' },
-            ]"
-            :disabled="saving"
-            @update:value="handleThemeChange"
-          />
+          <NSelect :value="appStore.theme" :options="[
+            { label: t('settings.general.options.theme.light'), value: 'light' },
+            { label: t('settings.general.options.theme.dark'), value: 'dark' },
+          ]" :disabled="saving" @update:value="handleThemeChange" />
         </NFormItem>
 
         <NFormItem :label="t('settings.general.fields.language')">
-          <NSelect
-            v-model:value="form.language"
-            :options="[
-              { label: t('settings.general.options.language.enUS'), value: 'en-US' },
-              { label: t('settings.general.options.language.zhCN'), value: 'zh-CN' },
-            ]"
-            :disabled="saving"
-            @update:value="(value) => appStore.setLocale(value as 'en-US' | 'zh-CN')"
-          />
+          <NSelect v-model:value="form.language" :options="[
+            { label: t('settings.general.options.language.enUS'), value: 'en-US' },
+            { label: t('settings.general.options.language.zhCN'), value: 'zh-CN' },
+          ]" :disabled="saving" @update:value="(value) => appStore.setLocale(value as 'en-US' | 'zh-CN')" />
         </NFormItem>
 
         <NSpace justify="end" style="margin-top: 24px">

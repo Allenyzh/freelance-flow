@@ -63,8 +63,7 @@ const wailsProjectService: IProjectService = {
 };
 
 const wailsTimeEntryService: ITimeEntryService = {
-  list: (projectId) =>
-    WailsTimesheetService.List(getUserId(), projectId ?? 0),
+  list: (projectId) => WailsTimesheetService.List(getUserId(), projectId ?? 0),
   get: (id) => WailsTimesheetService.Get(getUserId(), id),
   create: (input) => WailsTimesheetService.Create(getUserId(), input),
   update: (input) => WailsTimesheetService.Update(getUserId(), input),
@@ -82,7 +81,10 @@ const wailsInvoiceService: IInvoiceService = {
       go: {
         services: {
           InvoiceService: {
-            GetDefaultMessage: (userId: number, invoiceId: number) => Promise<string>;
+            GetDefaultMessage: (
+              userId: number,
+              invoiceId: number
+            ) => Promise<string>;
           };
         };
       };
@@ -94,6 +96,10 @@ const wailsInvoiceService: IInvoiceService = {
   sendEmail: (id) => WailsInvoiceService.SendEmail(getUserId(), id),
   setTimeEntries: (input) =>
     WailsInvoiceService.SetTimeEntries(getUserId(), input),
+  updateStatus: (id, status) => {
+    // Cast to any to bypass missing type definition until regeneration
+    return (WailsInvoiceService as any).UpdateStatus(getUserId(), id, status);
+  },
 };
 
 const wailsSettingsService = {
@@ -119,8 +125,23 @@ const wailsReportService = {
 
 const wailsInvoiceEmailSettingsService = {
   get: () => WailsInvoiceEmailSettingsService.Get(getUserId()),
-  update: (input: InvoiceEmailSettings) =>
-    WailsInvoiceEmailSettingsService.Update(getUserId(), input),
+  update: (input: InvoiceEmailSettings) => {
+    const dtoSettings = new dto.InvoiceEmailSettings({
+      provider: input.provider,
+      from: input.from || "",
+      replyTo: input.replyTo,
+      subjectTemplate: input.subjectTemplate,
+      bodyTemplate: input.bodyTemplate,
+      resendApiKey: input.resendApiKey,
+      smtpHost: input.smtpHost,
+      smtpPort: input.smtpPort,
+      smtpUsername: input.smtpUsername,
+      smtpPassword: input.smtpPassword,
+      smtpUseTls: input.smtpUseTls,
+      signature: input.signature,
+    });
+    return WailsInvoiceEmailSettingsService.Update(getUserId(), dtoSettings);
+  },
   export: () => WailsInvoiceEmailSettingsService.ExportSettings(getUserId()),
 };
 
@@ -192,6 +213,7 @@ export const api = isWailsRuntime
       invoices: {
         ...mockInvoiceService,
         getDefaultMessage: async () => "Thank you for your business.",
+        updateStatus: async () => {},
       },
       invoiceEmailSettings: {
         get: async () => mockEmailSettings,
@@ -213,7 +235,11 @@ export const api = isWailsRuntime
 
           const now = new Date();
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-          const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          const nextMonthStart = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            1
+          );
           const monthStartKey =
             monthStart.getFullYear() * 10000 +
             (monthStart.getMonth() + 1) * 100 +

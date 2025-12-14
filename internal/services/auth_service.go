@@ -232,3 +232,68 @@ func (s *AuthService) HasUsers() bool {
 	}
 	return count > 0
 }
+
+// UpdateUser updates user profile information.
+func (s *AuthService) UpdateUser(input dto.UpdateUserInput) (dto.UserOutput, error) {
+	// Validate input
+	if input.Username == "" {
+		return dto.UserOutput{}, errors.New("username is required")
+	}
+
+	// Check if username exists for OTHER users
+	var existingID int
+	err := s.db.QueryRow("SELECT id FROM users WHERE username = ? AND id != ?", input.Username, input.ID).Scan(&existingID)
+	if err == nil {
+		return dto.UserOutput{}, ErrUsernameExists
+	}
+	if err != sql.ErrNoRows {
+		return dto.UserOutput{}, err
+	}
+
+	// Update user
+	_, err = s.db.Exec(`
+		UPDATE users 
+		SET username = ?, email = ?, avatar_url = ?
+		WHERE id = ?
+	`, input.Username, input.Email, input.AvatarURL, input.ID)
+
+	if err != nil {
+		log.Println("Error updating user:", err)
+		return dto.UserOutput{}, err
+	}
+
+	// Return updated user
+	return s.GetUserByID(input.ID)
+}
+
+// ChangePassword updates the user's password.
+func (s *AuthService) ChangePassword(input dto.ChangePasswordInput) (bool, error) {
+	var passwordHash string
+	err := s.db.QueryRow("SELECT password_hash FROM users WHERE id = ?", input.ID).Scan(&passwordHash)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, ErrUserNotFound
+		}
+		return false, err
+	}
+
+	// Verify old password
+	if !VerifyPassword(input.OldPassword, passwordHash) {
+		return false, ErrInvalidCredentials
+	}
+
+	// Hash new password
+	newHash, err := HashPassword(input.NewPassword)
+	if err != nil {
+		return false, err
+	}
+
+	// Update password
+	_, err = s.db.Exec("UPDATE users SET password_hash = ? WHERE id = ?", newHash, input.ID)
+	if err != nil {
+		log.Println("Error updating password:", err)
+		return false, err
+	}
+
+	return true, nil
+}

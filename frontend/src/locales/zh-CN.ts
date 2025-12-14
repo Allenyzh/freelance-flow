@@ -9,6 +9,7 @@ export default {
     saved: "已保存",
     cancel: "取消",
     confirm: "确认",
+    confirmDelete: "确定要删除此项吗？",
     refresh: "刷新",
     loading: "加载中...",
     noData: "暂无数据",
@@ -255,6 +256,8 @@ export default {
     noInvoices: "暂无发票",
     updateSuccess: "发票更新成功",
     createSuccess: "发票创建成功",
+    deleteSuccess: "发票删除成功",
+    deleteError: "删除发票失败",
     saveError: "保存发票失败",
     downloading: "正在下载 {number}...",
     entriesUpdated: "工时条目已更新",
@@ -303,6 +306,10 @@ export default {
       amount: "金额",
       status: "状态",
       actions: "操作",
+    },
+    actions: {
+      markAsPaid: "标记为已支付",
+      markAsUnpaid: "撤销已支付",
     },
     status: {
       draft: "草稿",
@@ -573,18 +580,27 @@ export default {
     profile: {
       title: "个人资料",
       description: "您的个人信息和公司详细信息",
-      personalCardTitle: "个人信息",
-      companyCardTitle: "公司信息",
+      tabs: {
+        account: "账户设置",
+      },
+      password: {
+        title: "修改密码",
+        current: "当前密码",
+        new: "新密码",
+        confirm: "确认新密码",
+        changeButton: "修改密码",
+      },
       fields: {
-        name: "姓名",
+        username: "用户名",
+        avatarUrl: "头像链接",
         email: "邮箱",
-        phone: "电话",
-        company: "公司",
-        address: "地址",
-        postalCode: "邮编",
+        randomizeAvatar: "随机生成",
+        uploadAvatar: "上传头像",
       },
       validation: {
         invalidEmail: "邮箱格式不正确",
+        passwordMismatch: "两次输入的密码不一致",
+        passwordRequired: "密码不能为空",
       },
       messages: {
         saved: "已保存个人资料设置",
@@ -643,7 +659,7 @@ export default {
       providerCardTitle: "邮件服务",
       resendCardTitle: "Resend 配置",
       resendDomainTip:
-        "注意：使用 Resend 时，您必须在 Resend 仪表盘中验证您的域名。只能使用已验证域名的邮箱作为发件人（如 billing@yourdomain.com）。如果用于测试，可使用 onboarding@resend.dev（仅能发送给自己）。",
+        "注意：使用 Resend 时，您必须在 Resend 仪表盘中验证您的域名。只能使用已验证域名的邮箱作为发件人（如 billing{'@'}yourdomain.com）。如果用于测试，可使用 onboarding{'@'}resend.dev（仅能发送给自己）。",
       smtpCardTitle: "SMTP 配置",
       fields: {
         provider: "提供商",
@@ -677,7 +693,7 @@ export default {
       validation: {
         required: "此项必填",
         invalidFormat:
-          "格式无效。请输入 'Name <email@example.com>' 或 'email@example.com'",
+          "格式无效。请输入 'Name <email{'@'}example.com>' 或 'email{'@'}example.com'",
         fixErrors: "请修正表单中的错误",
       },
     },

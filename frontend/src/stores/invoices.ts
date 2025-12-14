@@ -1,11 +1,7 @@
 import { defineStore, storeToRefs } from "pinia";
 import { ref, computed } from "vue";
 import { api } from "@/api";
-import type {
-  Invoice,
-  CreateInvoiceInput,
-  UpdateInvoiceInput,
-} from "@/types";
+import type { Invoice, CreateInvoiceInput, UpdateInvoiceInput } from "@/types";
 import { useClientStore } from "./clients";
 import { useStatusBarStore } from "./statusBar";
 
@@ -113,6 +109,16 @@ export const useInvoiceStore = defineStore("invoices", () => {
     return api.invoices.sendEmail(id);
   }
 
+  async function updateStatus(id: number, status: string) {
+    loading.value = true;
+    try {
+      await api.invoices.updateStatus(id, status);
+      await fetchInvoices();
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     invoices,
     enrichedInvoices,
@@ -126,5 +132,6 @@ export const useInvoiceStore = defineStore("invoices", () => {
     getDefaultMessage,
     generatePdf,
     sendEmail,
+    updateStatus,
   };
 });

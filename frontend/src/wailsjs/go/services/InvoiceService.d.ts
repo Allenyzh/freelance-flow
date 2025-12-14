@@ -19,3 +19,5 @@ export function SendEmail(arg1:number,arg2:number):Promise<void>;
 export function SetTimeEntries(arg1:number,arg2:dto.SetInvoiceTimeEntriesInput):Promise<dto.InvoiceOutput>;
 
 export function Update(arg1:number,arg2:dto.UpdateInvoiceInput):Promise<dto.InvoiceOutput>;
+
+export function UpdateStatus(arg1:number,arg2:number,arg3:string):Promise<void>;

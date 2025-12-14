@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, reactive } from "vue";
 import {
   NForm,
   NFormItem,
@@ -8,131 +8,190 @@ import {
   NButton,
   useMessage,
   NCard,
+  NDivider,
+  NAvatar,
+  NIcon,
+  NTooltip,
 } from "naive-ui";
-import { useSettingsStore } from "@/stores/settings";
-import type { UserSettings } from "@/types";
+import { ReloadOutlined, UploadOutlined } from "@vicons/antd";
+import { useAuthStore } from "@/stores/auth";
+import { dto } from "@/wailsjs/go/models";
 import { useI18n } from "vue-i18n";
 
-const settingsStore = useSettingsStore();
+const authStore = useAuthStore();
 const message = useMessage();
 const { t } = useI18n();
 
-const formRef = ref<InstanceType<typeof NForm> | null>(null);
-const form = ref<UserSettings>({
-  currency: "USD",
-  defaultTaxRate: 0,
-  language: "en-US",
-  theme: "light",
-  dateFormat: "2006-01-02",
-  timezone: "UTC",
-  senderName: "",
-  senderCompany: "",
-  senderAddress: "",
-  senderPhone: "",
-  senderEmail: "",
-  senderPostalCode: "",
-  invoiceTerms: "",
-  defaultMessageTemplate: "",
+// Account Settings Form
+const accountFormRef = ref<InstanceType<typeof NForm> | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const accountForm = ref<dto.UpdateUserInput>({
+  id: 0,
+  username: "",
+  email: "",
+  avatarUrl: "",
+  settingsJson: "",
+});
+const passwordForm = reactive({
+  oldPassword: "",
+  newPassword: "",
+  confirmPassword: "",
 });
 
-const saving = ref(false);
+const accountSaving = ref(false);
 
-const rules = computed(() => ({
-  senderEmail: {
-    validator: (_: unknown, value: string) => {
-      if (!value) return true;
-      return value.includes("@");
-    },
-    message: t("settings.profile.validation.invalidEmail"),
-    trigger: ["blur", "input"],
-  },
-}));
-
-onMounted(async () => {
-  await settingsStore.fetchSettings();
-  if (settingsStore.settings) {
-    const settings = settingsStore.settings;
-    form.value = {
-      ...form.value,
-      senderName: settings.senderName,
-      senderCompany: settings.senderCompany,
-      senderAddress: settings.senderAddress,
-      senderPhone: settings.senderPhone,
-      senderEmail: settings.senderEmail,
-      senderPostalCode: settings.senderPostalCode,
+onMounted(() => {
+  // Load Account Settings
+  if (authStore.currentUser) {
+    accountForm.value = {
+      id: authStore.currentUser.id,
+      username: authStore.currentUser.username,
+      email: authStore.currentUser.email,
+      avatarUrl: authStore.currentUser.avatarUrl,
+      settingsJson: authStore.currentUser.settingsJson,
     };
   }
 });
 
-async function handleSave() {
-  try {
-    await formRef.value?.validate();
-  } catch {
-    return;
-  }
-  saving.value = true;
-  try {
-    const currentSettings = settingsStore.settings || {};
-    const updatedSettings = {
-      ...currentSettings,
-      senderName: form.value.senderName,
-      senderCompany: form.value.senderCompany,
-      senderAddress: form.value.senderAddress,
-      senderPhone: form.value.senderPhone,
-      senderEmail: form.value.senderEmail,
-      senderPostalCode: form.value.senderPostalCode,
+function handleRandomAvatar() {
+  const seed = Math.random().toString(36).substring(7);
+  // Use Dicebear Avataaars
+  accountForm.value.avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`;
+}
+
+function handleUploadAvatar() {
+  fileInputRef.value?.click();
+}
+
+function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (typeof e.target?.result === 'string') {
+        accountForm.value.avatarUrl = e.target.result;
+      }
     };
-    await settingsStore.saveSettings(updatedSettings);
+    reader.readAsDataURL(file);
+  }
+}
+
+async function handleUpdateProfile() {
+  try {
+    accountSaving.value = true;
+    await authStore.updateProfile(accountForm.value);
     message.success(t("settings.profile.messages.saved"));
   } catch (e) {
     message.error(e instanceof Error ? e.message : t("settings.profile.messages.saveError"));
   } finally {
-    saving.value = false;
+    accountSaving.value = false;
+  }
+}
+
+async function handleChangePassword() {
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    message.error(t("settings.profile.validation.passwordMismatch"));
+    return;
+  }
+  if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+    message.error(t("settings.profile.validation.passwordRequired"));
+    return;
+  }
+
+  try {
+    accountSaving.value = true;
+    const input = new dto.ChangePasswordInput({
+      id: accountForm.value.id,
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    });
+
+    await authStore.changePassword(input);
+    message.success(t("settings.profile.messages.saved"));
+    // Clear password fields
+    passwordForm.oldPassword = "";
+    passwordForm.newPassword = "";
+    passwordForm.confirmPassword = "";
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : t("settings.profile.messages.saveError"));
+  } finally {
+    accountSaving.value = false;
   }
 }
 </script>
 
 <template>
   <div class="profile-settings">
-    <NCard :title="t('settings.profile.personalCardTitle')" :bordered="false">
-      <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
-        <NFormItem :label="t('settings.profile.fields.name')" path="senderName">
-          <NInput v-model:value="form.senderName" :disabled="saving" />
+    <NCard :bordered="false" :title="t('settings.profile.tabs.account')">
+      <NForm ref="accountFormRef" label-placement="top">
+
+        <div class="account-layout">
+          <!-- Left Column: Avatar & Actions -->
+          <div class="avatar-column">
+            <div class="avatar-wrapper">
+              <NAvatar round :size="120" :src="accountForm.avatarUrl" class="profile-avatar" />
+
+              <NTooltip trigger="hover">
+                <template #trigger>
+                  <NButton circle secondary class="random-avatar-btn" size="small" @click="handleRandomAvatar">
+                    <template #icon>
+                      <NIcon>
+                        <ReloadOutlined />
+                      </NIcon>
+                    </template>
+                  </NButton>
+                </template>
+                {{ t("settings.profile.fields.randomizeAvatar") }}
+              </NTooltip>
+            </div>
+
+            <NButton secondary @click="handleUploadAvatar" class="upload-btn">
+              <template #icon>
+                <NIcon>
+                  <UploadOutlined />
+                </NIcon>
+              </template>
+              {{ t("settings.profile.fields.uploadAvatar") || "Upload Photo" }}
+            </NButton>
+
+            <input type="file" ref="fileInputRef" style="display: none" accept="image/*" @change="onFileChange" />
+          </div>
+
+          <!-- Right Column: Form Fields -->
+          <div class="form-column">
+            <NFormItem :label="t('settings.profile.fields.username')">
+              <NInput v-model:value="accountForm.username" />
+            </NFormItem>
+
+            <NFormItem :label="t('settings.profile.fields.email')">
+              <NInput v-model:value="accountForm.email" />
+            </NFormItem>
+
+            <NSpace justify="end" style="margin-top: 12px">
+              <NButton type="primary" :loading="accountSaving" @click="handleUpdateProfile">
+                {{ t("common.save") }}
+              </NButton>
+            </NSpace>
+          </div>
+        </div>
+
+        <NDivider />
+
+        <h3>{{ t("settings.profile.password.title") }}</h3>
+        <NFormItem :label="t('settings.profile.password.current')">
+          <NInput type="password" show-password-on="click" v-model:value="passwordForm.oldPassword" />
+        </NFormItem>
+        <NFormItem :label="t('settings.profile.password.new')">
+          <NInput type="password" show-password-on="click" v-model:value="passwordForm.newPassword" />
+        </NFormItem>
+        <NFormItem :label="t('settings.profile.password.confirm')">
+          <NInput type="password" show-password-on="click" v-model:value="passwordForm.confirmPassword" />
         </NFormItem>
 
-        <NFormItem :label="t('settings.profile.fields.email')" path="senderEmail">
-          <NInput v-model:value="form.senderEmail" :disabled="saving" />
-        </NFormItem>
-
-        <NFormItem :label="t('settings.profile.fields.phone')">
-          <NInput v-model:value="form.senderPhone" :disabled="saving" />
-        </NFormItem>
-
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
-
-    <NCard :title="t('settings.profile.companyCardTitle')" :bordered="false" style="margin-top: 16px">
-      <NForm label-placement="top">
-        <NFormItem :label="t('settings.profile.fields.company')">
-          <NInput v-model:value="form.senderCompany" :disabled="saving" />
-        </NFormItem>
-
-        <NFormItem :label="t('settings.profile.fields.address')">
-          <NInput v-model:value="form.senderAddress" :disabled="saving" />
-        </NFormItem>
-
-        <NFormItem :label="t('settings.profile.fields.postalCode')">
-          <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
-        </NFormItem>
-
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
+        <NSpace justify="end">
+          <NButton type="warning" :loading="accountSaving" @click="handleChangePassword">
+            {{ t("settings.profile.password.changeButton") }}
           </NButton>
         </NSpace>
       </NForm>
@@ -143,5 +202,57 @@ async function handleSave() {
 <style scoped>
 .profile-settings {
   max-width: 800px;
+}
+
+.account-layout {
+  display: flex;
+  gap: 60px;
+  /* Increased gap for better separation */
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.avatar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 160px;
+  padding-top: 8px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.random-avatar-btn {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  background-color: var(--n-color);
+  /* Match theme background or white */
+  border: 1px solid var(--n-border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.form-column {
+  flex-grow: 1;
+  max-width: 480px;
+  /* Restrict width of the form inputs */
+}
+
+@media (max-width: 600px) {
+  .account-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .form-column {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 </style>

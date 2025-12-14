@@ -7,14 +7,14 @@ import {
   NSpace,
   NButton,
   useMessage,
-  NCard,
+  NTabs,
+  NTabPane,
   NSwitch,
   NSelect,
   NAlert,
 } from "naive-ui";
 import { useSettingsStore } from "@/stores/settings";
 import type { UserSettings } from "@/types";
-import { dto } from "@/wailsjs/go/models";
 import { useI18n } from "vue-i18n";
 
 const settingsStore = useSettingsStore();
@@ -82,7 +82,11 @@ onMounted(async () => {
 async function handleSave() {
   saving.value = true;
   try {
-    const currentSettings = settingsStore.settings || new dto.UserSettings();
+    const currentSettings = settingsStore.settings;
+    if (!currentSettings) {
+      message.error(t("settings.invoice.messages.loadError"));
+      return;
+    }
     const updatedSettings = {
       ...currentSettings,
       invoiceTerms: form.value.invoiceTerms,
@@ -110,96 +114,100 @@ async function handleSave() {
 
 <template>
   <div class="invoice-settings">
-    <NCard :title="t('settings.invoice.defaultsCardTitle')" :bordered="false">
-      <NForm ref="formRef" label-placement="top">
-        <NFormItem :label="t('settings.invoice.fields.invoiceTerms')">
-          <NInput type="textarea" v-model:value="form.invoiceTerms" :autosize="{ minRows: 2, maxRows: 4 }"
-            :disabled="saving" />
-        </NFormItem>
+    <NTabs type="line" animated>
+      <!-- Defaults Tab -->
+      <NTabPane name="defaults" :tab="t('settings.invoice.defaultsCardTitle')">
+        <NForm ref="formRef" label-placement="top">
+          <NFormItem :label="t('settings.invoice.fields.invoiceTerms')">
+            <NInput type="textarea" v-model:value="form.invoiceTerms" :autosize="{ minRows: 2, maxRows: 4 }"
+              :disabled="saving" />
+          </NFormItem>
 
-        <NFormItem :label="t('settings.invoice.fields.defaultMessageTemplate')">
-          <NInput type="textarea" v-model:value="form.defaultMessageTemplate" :autosize="{ minRows: 3, maxRows: 6 }"
-            :disabled="saving" />
-        </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.defaultMessageTemplate')">
+            <NInput type="textarea" v-model:value="form.defaultMessageTemplate" :autosize="{ minRows: 3, maxRows: 6 }"
+              :disabled="saving" />
+          </NFormItem>
 
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
+          <NSpace justify="end" style="margin-top: 24px">
+            <NButton type="primary" :loading="saving" @click="handleSave">
+              {{ t("common.save") }}
+            </NButton>
+          </NSpace>
+        </NForm>
+      </NTabPane>
 
-    <NCard :title="t('settings.invoice.headerCardTitle')" :bordered="false" style="margin-top: 16px">
-      <NForm label-placement="top">
-        <NFormItem :label="t('settings.invoice.fields.senderName')">
-          <NInput v-model:value="form.senderName" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.invoice.fields.senderCompany')">
-          <NInput v-model:value="form.senderCompany" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.invoice.fields.senderAddress')">
-          <NInput v-model:value="form.senderAddress" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.invoice.fields.senderPhone')">
-          <NInput v-model:value="form.senderPhone" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.invoice.fields.senderEmail')">
-          <NInput v-model:value="form.senderEmail" :disabled="saving" />
-        </NFormItem>
-        <NFormItem :label="t('settings.invoice.fields.senderPostalCode')">
-          <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
-        </NFormItem>
+      <!-- Sender Info Tab -->
+      <NTabPane name="sender" :tab="t('settings.invoice.headerCardTitle')">
+        <NForm label-placement="top">
+          <NFormItem :label="t('settings.invoice.fields.senderName')">
+            <NInput v-model:value="form.senderName" :disabled="saving" />
+          </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.senderCompany')">
+            <NInput v-model:value="form.senderCompany" :disabled="saving" />
+          </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.senderAddress')">
+            <NInput v-model:value="form.senderAddress" :disabled="saving" />
+          </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.senderPhone')">
+            <NInput v-model:value="form.senderPhone" :disabled="saving" />
+          </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.senderEmail')">
+            <NInput v-model:value="form.senderEmail" :disabled="saving" />
+          </NFormItem>
+          <NFormItem :label="t('settings.invoice.fields.senderPostalCode')">
+            <NInput v-model:value="form.senderPostalCode" :disabled="saving" />
+          </NFormItem>
 
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
+          <NSpace justify="end" style="margin-top: 24px">
+            <NButton type="primary" :loading="saving" @click="handleSave">
+              {{ t("common.save") }}
+            </NButton>
+          </NSpace>
+        </NForm>
+      </NTabPane>
 
-    <!-- HST/Tax Settings Card -->
-    <NCard :title="t('settings.invoice.hst.cardTitle')" :bordered="false" style="margin-top: 16px">
-      <NForm label-placement="top">
-        <NAlert v-if="!form.hstRegistered" type="info" :show-icon="true" style="margin-bottom: 16px">
-          {{ t('settings.invoice.hst.info.notRegistered') }}
-        </NAlert>
-        <NAlert v-else type="warning" :show-icon="true" style="margin-bottom: 16px">
-          {{ t('settings.invoice.hst.info.registered') }}
-        </NAlert>
+      <!-- Tax / HST Tab -->
+      <NTabPane name="tax" :tab="t('settings.invoice.hst.cardTitle')">
+        <NForm label-placement="top">
+          <NAlert v-if="!form.hstRegistered" type="info" :show-icon="true" style="margin-bottom: 16px">
+            {{ t('settings.invoice.hst.info.notRegistered') }}
+          </NAlert>
+          <NAlert v-else type="warning" :show-icon="true" style="margin-bottom: 16px">
+            {{ t('settings.invoice.hst.info.registered') }}
+          </NAlert>
 
-        <NFormItem :label="t('settings.invoice.hst.registered')">
-          <NSwitch v-model:value="form.hstRegistered" :disabled="saving" />
-          <span style="margin-left: 12px; color: #666; font-size: 13px;">
-            {{ t('settings.invoice.hst.registeredHint') }}
-          </span>
-        </NFormItem>
+          <NFormItem :label="t('settings.invoice.hst.registered')">
+            <NSwitch v-model:value="form.hstRegistered" :disabled="saving" />
+            <span style="margin-left: 12px; color: #666; font-size: 13px;">
+              {{ t('settings.invoice.hst.registeredHint') }}
+            </span>
+          </NFormItem>
 
-        <NFormItem v-if="form.hstRegistered" :label="t('settings.invoice.hst.number')">
-          <NInput v-model:value="form.hstNumber" :placeholder="t('settings.invoice.hst.numberPlaceholder')"
-            :disabled="saving" />
-        </NFormItem>
+          <NFormItem v-if="form.hstRegistered" :label="t('settings.invoice.hst.number')">
+            <NInput v-model:value="form.hstNumber" :placeholder="t('settings.invoice.hst.numberPlaceholder')"
+              :disabled="saving" />
+          </NFormItem>
 
-        <NFormItem :label="t('settings.invoice.hst.expectedIncome')">
-          <NSelect v-model:value="form.expectedIncome" :options="expectedIncomeOptions"
-            :placeholder="t('settings.invoice.hst.expectedIncomePlaceholder')" clearable :disabled="saving" />
-        </NFormItem>
+          <NFormItem :label="t('settings.invoice.hst.expectedIncome')">
+            <NSelect v-model:value="form.expectedIncome" :options="expectedIncomeOptions"
+              :placeholder="t('settings.invoice.hst.expectedIncomePlaceholder')" clearable :disabled="saving" />
+          </NFormItem>
 
-        <NFormItem :label="t('settings.invoice.hst.taxEnabled')">
-          <NSwitch v-model:value="form.taxEnabled" :disabled="saving || !form.hstRegistered" />
-          <span style="margin-left: 12px; color: #666; font-size: 13px;">
-            {{ t('settings.invoice.hst.taxEnabledHint') }}
-          </span>
-        </NFormItem>
+          <NFormItem :label="t('settings.invoice.hst.taxEnabled')">
+            <NSwitch v-model:value="form.taxEnabled" :disabled="saving || !form.hstRegistered" />
+            <span style="margin-left: 12px; color: #666; font-size: 13px;">
+              {{ t('settings.invoice.hst.taxEnabledHint') }}
+            </span>
+          </NFormItem>
 
-        <NSpace justify="end" style="margin-top: 24px">
-          <NButton type="primary" :loading="saving" @click="handleSave">
-            {{ t("common.save") }}
-          </NButton>
-        </NSpace>
-      </NForm>
-    </NCard>
+          <NSpace justify="end" style="margin-top: 24px">
+            <NButton type="primary" :loading="saving" @click="handleSave">
+              {{ t("common.save") }}
+            </NButton>
+          </NSpace>
+        </NForm>
+      </NTabPane>
+    </NTabs>
   </div>
 </template>
 

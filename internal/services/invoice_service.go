@@ -10,14 +10,13 @@ import (
 	"freelance-flow/internal/dto"
 	"freelance-flow/internal/mapper"
 	"freelance-flow/internal/models"
+	"freelance-flow/internal/pdf"
+	"freelance-flow/internal/utils"
 	"log"
 	"net/smtp"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/go-pdf/fpdf"
 	"github.com/resend/resend-go/v3"
 )
 
@@ -33,53 +32,105 @@ func NewInvoiceService(db *sql.DB) *InvoiceService {
 
 // List returns all invoices for a specific user as DTOs.
 func (s *InvoiceService) List(userID int) []dto.InvoiceOutput {
-	rows, err := s.db.Query("SELECT id, client_id, number, issue_date, due_date, subtotal, tax_rate, tax_amount, total, status, items_json FROM invoices WHERE user_id = ?", userID)
+	rows, err := s.db.Query(`
+		SELECT i.id, i.client_id, 
+		(SELECT project_id FROM time_entries WHERE invoice_id = i.id LIMIT 1) as project_id,
+		i.number, i.issue_date, i.due_date, i.subtotal, i.tax_rate, i.tax_amount, i.total, i.status, i.items_json 
+		FROM invoices i WHERE i.user_id = ?`, userID)
 	if err != nil {
 		log.Println("Error querying invoices:", err)
 		return []dto.InvoiceOutput{}
 	}
 	defer closeWithLog(rows, "closing invoice rows")
 
-	var invoices []models.Invoice
+	var invoices []dto.InvoiceOutput // Direct to DTO since we changed the struct
+	// Wait, scan needs to map to variables.
+	// To avoid changing `models.Invoice` (which maps to DB table directly), let's scan into variables directly here.
+
 	for rows.Next() {
-		var i models.Invoice
-		var itemsJSON string
-		err := rows.Scan(&i.ID, &i.ClientID, &i.Number, &i.IssueDate, &i.DueDate, &i.Subtotal, &i.TaxRate, &i.TaxAmount, &i.Total, &i.Status, &itemsJSON)
+		var id, clientId int
+		var projectId sql.NullInt64
+		var number, issueDate, dueDate, status, itemsJSON string
+		var subtotal, taxRate, taxAmount, total float64
+
+		err := rows.Scan(&id, &clientId, &projectId, &number, &issueDate, &dueDate, &subtotal, &taxRate, &taxAmount, &total, &status, &itemsJSON)
 		if err != nil {
 			log.Println("Error scanning invoice:", err)
 			continue
 		}
+
+		var items []dto.InvoiceItemOutput
 		if itemsJSON != "" {
-			if err := json.Unmarshal([]byte(itemsJSON), &i.Items); err != nil {
-				log.Printf("Error unmarshalling items for invoice %d: %v", i.ID, err)
-				i.Items = []models.InvoiceItem{}
+			var entityItems []models.InvoiceItem
+			if err := json.Unmarshal([]byte(itemsJSON), &entityItems); err == nil {
+				items = mapper.ToInvoiceItemOutputList(entityItems)
 			}
 		} else {
-			i.Items = []models.InvoiceItem{}
+			items = []dto.InvoiceItemOutput{}
 		}
-		invoices = append(invoices, i)
+
+		invoices = append(invoices, dto.InvoiceOutput{
+			ID:        id,
+			ClientID:  clientId,
+			ProjectID: int(projectId.Int64),
+			Number:    number,
+			IssueDate: issueDate,
+			DueDate:   dueDate,
+			Subtotal:  subtotal,
+			TaxRate:   taxRate,
+			TaxAmount: taxAmount,
+			Total:     total,
+			Status:    status,
+			Items:     items,
+		})
 	}
-	return mapper.ToInvoiceOutputList(invoices)
+	return invoices
 }
 
 // Get returns a single invoice by ID for a specific user.
 func (s *InvoiceService) Get(userID int, id int) (dto.InvoiceOutput, error) {
-	row := s.db.QueryRow("SELECT id, client_id, number, issue_date, due_date, subtotal, tax_rate, tax_amount, total, status, items_json FROM invoices WHERE id = ? AND user_id = ?", id, userID)
-	var i models.Invoice
-	var itemsJSON string
-	err := row.Scan(&i.ID, &i.ClientID, &i.Number, &i.IssueDate, &i.DueDate, &i.Subtotal, &i.TaxRate, &i.TaxAmount, &i.Total, &i.Status, &itemsJSON)
+	row := s.db.QueryRow(`
+		SELECT i.id, i.client_id, 
+		(SELECT project_id FROM time_entries WHERE invoice_id = i.id LIMIT 1) as project_id,
+		i.number, i.issue_date, i.due_date, i.subtotal, i.tax_rate, i.tax_amount, i.total, i.status, i.items_json 
+		FROM invoices i WHERE i.id = ? AND i.user_id = ?`, id, userID)
+
+	var invId, clientId int
+	var projectId sql.NullInt64
+	var number, issueDate, dueDate, status, itemsJSON string
+	var subtotal, taxRate, taxAmount, total float64
+
+	err := row.Scan(&invId, &clientId, &projectId, &number, &issueDate, &dueDate, &subtotal, &taxRate, &taxAmount, &total, &status, &itemsJSON)
 	if err != nil {
 		return dto.InvoiceOutput{}, err
 	}
+
+	var items []dto.InvoiceItemOutput
 	if itemsJSON != "" {
-		if err := json.Unmarshal([]byte(itemsJSON), &i.Items); err != nil {
-			log.Printf("Error unmarshalling items for invoice %d: %v", i.ID, err)
+		var entityItems []models.InvoiceItem
+		if err := json.Unmarshal([]byte(itemsJSON), &entityItems); err != nil {
+			log.Printf("Error unmarshalling items for invoice %d: %v", invId, err)
 			return dto.InvoiceOutput{}, fmt.Errorf("failed to unmarshal items: %w", err)
 		}
+		items = mapper.ToInvoiceItemOutputList(entityItems)
 	} else {
-		i.Items = []models.InvoiceItem{}
+		items = []dto.InvoiceItemOutput{}
 	}
-	return mapper.ToInvoiceOutput(i), nil
+
+	return dto.InvoiceOutput{
+		ID:        invId,
+		ClientID:  clientId,
+		ProjectID: int(projectId.Int64),
+		Number:    number,
+		IssueDate: issueDate,
+		DueDate:   dueDate,
+		Subtotal:  subtotal,
+		TaxRate:   taxRate,
+		TaxAmount: taxAmount,
+		Total:     total,
+		Status:    status,
+		Items:     items,
+	}, nil
 }
 
 // Create adds a new invoice for a specific user and returns the created invoice as DTO.
@@ -128,6 +179,29 @@ func (s *InvoiceService) Update(userID int, input dto.UpdateInvoiceInput) dto.In
 
 	output, _ := s.Get(userID, input.ID)
 	return output
+}
+
+// UpdateStatus updates the status of an invoice.
+func (s *InvoiceService) UpdateStatus(userID int, invoiceID int, status string) error {
+	stmt, err := s.db.Prepare("UPDATE invoices SET status=? WHERE id=? AND user_id=?")
+	if err != nil {
+		log.Println("Error preparing invoice status update:", err)
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer closeWithLog(stmt, "closing invoice status update statement")
+
+	res, err := stmt.Exec(status, invoiceID, userID)
+	if err != nil {
+		log.Println("Error updating invoice status:", err)
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("invoice not found or not owned by user")
+	}
+
+	return nil
 }
 
 // Delete removes an invoice by ID for a specific user.
@@ -179,11 +253,11 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 		if apiKey == "" {
 			return fmt.Errorf("Resend API key is missing")
 		}
-		subject := applyTemplate(emailSettings.SubjectTemplate, invoice)
+		subject := utils.ApplyTemplate(emailSettings.SubjectTemplate, invoice)
 		if subject == "" {
 			subject = fmt.Sprintf("Invoice %s", invoice.Number)
 		}
-		body := applyTemplate(emailSettings.BodyTemplate, invoice)
+		body := utils.ApplyTemplate(emailSettings.BodyTemplate, invoice)
 		if body == "" {
 			body = "Please see attached invoice."
 		}
@@ -229,11 +303,11 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 			return fmt.Errorf("SMTP from email is missing")
 		}
 
-		subject := applyTemplate(emailSettings.SubjectTemplate, invoice)
+		subject := utils.ApplyTemplate(emailSettings.SubjectTemplate, invoice)
 		if subject == "" {
 			subject = fmt.Sprintf("Invoice %s", invoice.Number)
 		}
-		body := applyTemplate(emailSettings.BodyTemplate, invoice)
+		body := utils.ApplyTemplate(emailSettings.BodyTemplate, invoice)
 		if body == "" {
 			body = "Please see attached invoice."
 		}
@@ -317,124 +391,19 @@ func (s *InvoiceService) GeneratePDF(userID int, invoiceID int, message string) 
 	// Ensure we use latest totals and items derived from linked time entries
 	invoice = s.ensureInvoiceRecalcForPDF(userID, invoice, settings)
 
-	// Use template-based PDF generation
-	pdfBytes, err := s.renderPDFWithTemplate(invoice, client, settings, finalMessage)
+	// Use PDF Generator
+	generator := pdf.NewGenerator(pdf.GetTemplatesDir())
+	return generator.GeneratePDF(invoice, client, settings, finalMessage)
+}
+
+// ensureInvoiceRecalcForPDF recalculates invoice totals/items from linked time entries if present.
+func (s *InvoiceService) ensureInvoiceRecalcForPDF(userID int, invoice dto.InvoiceOutput, _ models.UserSettings) dto.InvoiceOutput {
+	updated, err := s.recalculateInvoiceFromTimeEntries(userID, invoice.ID, invoice.TaxRate)
 	if err != nil {
-		log.Printf("Template PDF failed, falling back to fpdf: %v", err)
-		// Fallback to old fpdf method
-		return s.generatePDFWithFpdf(invoice, client, settings, finalMessage)
+		log.Println("Recalc before PDF failed, using stored invoice:", err)
+		return invoice
 	}
-
-	return base64.StdEncoding.EncodeToString(pdfBytes), nil
-}
-
-// renderPDFWithTemplate uses the HTML template renderer for PDF generation.
-func (s *InvoiceService) renderPDFWithTemplate(invoice dto.InvoiceOutput, client models.Client, settings models.UserSettings, message string) ([]byte, error) {
-	templatesDir := GetTemplatesDir()
-	renderer := NewTemplateRenderer(templatesDir)
-
-	// Build billing city line from parts
-	billingCityLine := buildBillingCityLine(client)
-
-	// Get currency symbol
-	currencySymbol := getCurrencySymbol(settings.Currency)
-
-	// Use billing company, fallback to client name
-	billingCompany := client.BillingCompany
-	if billingCompany == "" {
-		billingCompany = client.Name
-	}
-
-	// Build template data
-	data := InvoiceTemplateData{
-		SenderName:       settings.SenderName,
-		SenderCompany:    settings.SenderCompany,
-		SenderAddress:    settings.SenderAddress,
-		SenderPostalCode: settings.SenderPostalCode,
-		SenderPhone:      settings.SenderPhone,
-		SenderEmail:      settings.SenderEmail,
-
-		BillingCompany:  billingCompany,
-		BillingAddress:  client.BillingAddress,
-		BillingCityLine: billingCityLine,
-
-		InvoiceNumber: invoice.Number,
-		IssueDate:     formatDate(invoice.IssueDate, settings),
-		DueDate:       formatDate(invoice.DueDate, settings),
-		Terms:         settings.InvoiceTerms,
-
-		Subtotal:       invoice.Subtotal,
-		TaxRate:        invoice.TaxRate,
-		TaxAmount:      invoice.TaxAmount,
-		Total:          invoice.Total,
-		Currency:       settings.Currency,
-		CurrencySymbol: currencySymbol,
-
-		MinRows: 5,
-		Message: message,
-	}
-
-	// Convert invoice items
-	for _, item := range invoice.Items {
-		data.Items = append(data.Items, InvoiceItemData{
-			Description: item.Description,
-			Quantity:    item.Quantity,
-			UnitPrice:   item.UnitPrice,
-			Amount:      item.Amount,
-		})
-	}
-
-	// Use quickbooks template by default
-	return renderer.GenerateInvoicePDF("quickbooks", data)
-}
-
-// buildBillingCityLine constructs "City, Province, Postal Code" line.
-func buildBillingCityLine(client models.Client) string {
-	parts := []string{}
-	if client.BillingCity != "" {
-		parts = append(parts, client.BillingCity)
-	}
-	if client.BillingProvince != "" {
-		parts = append(parts, client.BillingProvince)
-	}
-	if client.BillingPostalCode != "" {
-		parts = append(parts, client.BillingPostalCode)
-	}
-	if len(parts) == 0 {
-		return "City, Province, Postal code"
-	}
-	return strings.Join(parts, ", ")
-}
-
-// getCurrencySymbol returns the currency symbol for a given currency code.
-func getCurrencySymbol(currency string) string {
-	symbols := map[string]string{
-		"CAD": "$",
-		"USD": "$",
-		"CNY": "¥",
-		"EUR": "€",
-		"GBP": "£",
-		"JPY": "¥",
-	}
-	if sym, ok := symbols[currency]; ok {
-		return sym
-	}
-	return "$" // Default to $
-}
-
-// generatePDFWithFpdf is the legacy PDF generation using fpdf (fallback).
-func (s *InvoiceService) generatePDFWithFpdf(invoice dto.InvoiceOutput, client models.Client, settings models.UserSettings, message string) (string, error) {
-	pdf, err := s.renderPDF(invoice, client, settings, message)
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-	if err := pdf.Output(&buf); err != nil {
-		return "", fmt.Errorf("failed to render pdf: %w", err)
-	}
-
-	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+	return updated
 }
 
 // GetDefaultMessage exposes the default MESSAGE generation for frontend preview.
@@ -512,221 +481,19 @@ ORDER BY date ASC, start_time ASC`
 	return strings.Join(lines, "\n")
 }
 
-func formatAmount(amount float64, currency string) string {
-	return fmt.Sprintf("%.2f %s", amount, currency)
-}
-
-func formatDate(raw string, settings models.UserSettings) string {
-	if raw == "" {
-		return ""
-	}
-	layouts := []string{"2006-01-02", time.RFC3339}
-	var parsed time.Time
-	var err error
-	for _, l := range layouts {
-		parsed, err = time.Parse(l, raw)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		return raw
-	}
-	loc, locErr := time.LoadLocation(settings.Timezone)
-	if locErr == nil {
-		parsed = parsed.In(loc)
-	}
-	if settings.DateFormat == "" {
-		settings.DateFormat = "2006-01-02"
-	}
-	return parsed.Format(settings.DateFormat)
-}
-
-func loadPDFFonts(pdf *fpdf.Fpdf) (bool, bool) {
-	fontDir := "fonts"
-	robotoPath := filepath.Join(fontDir, "Roboto-Regular.ttf")
-	notoPath := filepath.Join(fontDir, "NotoSansSC-Regular.ttf")
-	hasRoboto := false
-	hasNoto := false
-	// #nosec G304 -- font paths are fixed under app-controlled fonts dir.
-	if data, err := os.ReadFile(robotoPath); err == nil {
-		pdf.AddUTF8FontFromBytes("Roboto", "", data)
-		hasRoboto = true
-	}
-	// #nosec G304 -- font paths are fixed under app-controlled fonts dir.
-	if data, err := os.ReadFile(notoPath); err == nil {
-		pdf.AddUTF8FontFromBytes("NotoSansSC", "", data)
-		hasNoto = true
-	}
-	return hasRoboto, hasNoto
-}
-
-// ensureInvoiceRecalcForPDF recalculates invoice totals/items from linked time entries if present.
-func (s *InvoiceService) ensureInvoiceRecalcForPDF(userID int, invoice dto.InvoiceOutput, _ models.UserSettings) dto.InvoiceOutput {
-	updated, err := s.recalculateInvoiceFromTimeEntries(userID, invoice.ID, invoice.TaxRate)
-	if err != nil {
-		log.Println("Recalc before PDF failed, using stored invoice:", err)
-		return invoice
-	}
-	return updated
-}
-
-// renderPDF draws the invoice PDF with the expected layout.
-func (s *InvoiceService) renderPDF(invoice dto.InvoiceOutput, client models.Client, settings models.UserSettings, message string) (*fpdf.Fpdf, error) {
-	pdf := fpdf.New("P", "mm", "A4", "")
-	pdf.SetMargins(15, 20, 15)
-	pdf.AddPage()
-	hasRoboto, hasNoto := loadPDFFonts(pdf)
-	baseFont := "Helvetica"
-	boldStyle := "B" // Helvetica supports bold style
-	if hasNoto {
-		baseFont = "NotoSansSC"
-		boldStyle = "" // UTF-8 fonts don't have bold variant loaded
-	} else if hasRoboto {
-		baseFont = "Roboto"
-		boldStyle = "" // UTF-8 fonts don't have bold variant loaded
-	}
-
-	headerFill := func() {
-		pdf.SetFillColor(51, 51, 51)
-		pdf.Rect(0, 0, 210, 35, "F")
-		pdf.SetTextColor(255, 255, 255)
-		pdf.SetFont(baseFont, boldStyle, 28)
-		pdf.SetXY(150, 12)
-		pdf.CellFormat(50, 10, "INVOICE", "", 0, "R", false, 0, "")
-
-		pdf.SetFont(baseFont, "", 11)
-		pdf.SetXY(15, 12)
-		senderName := settings.SenderName
-		if senderName == "" {
-			senderName = settings.SenderCompany
-		}
-		if senderName == "" {
-			senderName = "Sender"
-		}
-		pdf.CellFormat(120, 6, senderName, "", 1, "L", false, 0, "")
-		if settings.SenderAddress != "" {
-			pdf.CellFormat(120, 6, settings.SenderAddress, "", 1, "L", false, 0, "")
-		}
-		if settings.SenderPostalCode != "" {
-			pdf.CellFormat(120, 6, settings.SenderPostalCode, "", 1, "L", false, 0, "")
-		}
-		if settings.SenderPhone != "" {
-			pdf.CellFormat(120, 6, settings.SenderPhone, "", 1, "L", false, 0, "")
-		}
-		if settings.SenderEmail != "" {
-			pdf.CellFormat(120, 6, settings.SenderEmail, "", 1, "L", false, 0, "")
-		}
-		pdf.SetTextColor(0, 0, 0)
-	}
-
-	sectionInvoiceInfo := func() {
-		pdf.Ln(10)
-		pdf.SetFont(baseFont, boldStyle, 11)
-		pdf.CellFormat(90, 6, "INVOICE TO "+strings.ToUpper(client.Name), "", 0, "L", false, 0, "")
-		pdf.CellFormat(90, 6, fmt.Sprintf("INVOICE# %s", invoice.Number), "", 1, "R", false, 0, "")
-
-		pdf.SetFont(baseFont, "", 10)
-		pdf.CellFormat(90, 6, client.Address, "", 0, "L", false, 0, "")
-		rightY := pdf.GetY()
-		pdf.SetXY(105, rightY)
-		pdf.CellFormat(90, 6, fmt.Sprintf("DATE %s", formatDate(invoice.IssueDate, settings)), "", 1, "R", false, 0, "")
-
-		pdf.CellFormat(90, 6, fmt.Sprintf("%s %s", client.ContactPerson, client.Email), "", 0, "L", false, 0, "")
-		pdf.SetXY(105, pdf.GetY()-6)
-		due := invoice.DueDate
-		if due == "" {
-			due = "DUE DATE"
-		}
-		pdf.CellFormat(90, 6, fmt.Sprintf("DUE DATE %s", formatDate(due, settings)), "", 1, "R", false, 0, "")
-
-		pdf.SetXY(105, pdf.GetY()-6)
-		pdf.CellFormat(90, 6, fmt.Sprintf("TERMS %s", settings.InvoiceTerms), "", 1, "R", false, 0, "")
-		pdf.Ln(6)
-	}
-
-	tableItems := func() {
-		pdf.SetFillColor(12, 168, 67)
-		pdf.SetTextColor(255, 255, 255)
-		pdf.SetFont(baseFont, boldStyle, 10)
-		pdf.CellFormat(100, 8, "DESCRIPTION", "1", 0, "L", true, 0, "")
-		pdf.CellFormat(30, 8, "QTY", "1", 0, "C", true, 0, "")
-		pdf.CellFormat(30, 8, "RATE", "1", 0, "C", true, 0, "")
-		pdf.CellFormat(30, 8, "AMOUNT", "1", 1, "C", true, 0, "")
-
-		pdf.SetTextColor(0, 0, 0)
-		pdf.SetFont(baseFont, "", 10)
-		description := "Invoice Summary"
-		if len(invoice.Items) > 0 && invoice.Items[0].Description != "" {
-			description = invoice.Items[0].Description
-		}
-		qty := 0.0
-		rate := 0.0
-		for _, item := range invoice.Items {
-			qty += item.Quantity
-			rate = item.UnitPrice
-		}
-		if qty == 0 && rate > 0 {
-			qty = 1
-		}
-		amount := invoice.Total
-
-		pdf.CellFormat(100, 10, description, "1", 0, "L", false, 0, "")
-		pdf.CellFormat(30, 10, fmt.Sprintf("%.2f", qty), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(30, 10, formatAmount(rate, settings.Currency), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(30, 10, formatAmount(amount, settings.Currency), "1", 1, "C", false, 0, "")
-	}
-
-	totalSection := func() {
-		pdf.Ln(4)
-		startX := 110.0
-		pdf.SetXY(startX, pdf.GetY())
-		pdf.SetFont(baseFont, "", 10)
-		rows := []struct {
-			label string
-			value string
-		}{
-			{"SUBTOTAL", formatAmount(invoice.Subtotal, settings.Currency)},
-			{"DISCOUNT", "0"},
-			{"TAX", formatAmount(invoice.TaxAmount, settings.Currency)},
-			{"TOTAL", formatAmount(invoice.Total, settings.Currency)},
-			{"BALANCE DUE", formatAmount(invoice.Total, settings.Currency)},
-		}
-		for _, row := range rows {
-			pdf.CellFormat(40, 8, row.label, "", 0, "L", false, 0, "")
-			pdf.CellFormat(40, 8, row.value, "", 1, "R", false, 0, "")
-		}
-	}
-
-	messageSection := func() {
-		pdf.Ln(6)
-		pdf.SetFont(baseFont, boldStyle, 10)
-		pdf.CellFormat(60, 6, "MESSAGE", "", 1, "L", false, 0, "")
-		pdf.SetFont(baseFont, "", 10)
-		pdf.MultiCell(120, 6, message, "1", "L", false)
-	}
-
-	headerFill()
-	sectionInvoiceInfo()
-	tableItems()
-	messageSection()
-	totalSection()
-
-	return pdf, nil
-}
-
 // recalculateInvoiceFromTimeEntries recalculates subtotal/tax/total and items_json based on linked time entries.
 func (s *InvoiceService) recalculateInvoiceFromTimeEntries(userID int, invoiceID int, taxRate float64) (dto.InvoiceOutput, error) {
 	type entryRow struct {
-		ProjectID int
-		Project   string
-		Hourly    float64
-		Currency  string
-		Hours     float64
+		ProjectID   int
+		Project     string
+		Hourly      float64
+		Currency    string
+		ServiceType string
+		Hours       float64
 	}
 
 	rows, err := s.db.Query(`
-SELECT p.id, p.name, COALESCE(p.hourly_rate, 0), COALESCE(p.currency, ''), te.duration_seconds
+SELECT p.id, p.name, COALESCE(p.hourly_rate, 0), COALESCE(p.currency, ''), COALESCE(p.service_type, ''), te.duration_seconds
 FROM time_entries te
 JOIN projects p ON te.project_id = p.id
 WHERE te.user_id = ? AND te.invoice_id = ?`, userID, invoiceID)
@@ -738,10 +505,10 @@ WHERE te.user_id = ? AND te.invoice_id = ?`, userID, invoiceID)
 	projectHours := map[int]entryRow{}
 	for rows.Next() {
 		var pid int
-		var name, currency string
+		var name, currency, serviceType string
 		var rate float64
 		var seconds int
-		if err := rows.Scan(&pid, &name, &rate, &currency, &seconds); err != nil {
+		if err := rows.Scan(&pid, &name, &rate, &currency, &serviceType, &seconds); err != nil {
 			log.Println("Error scanning time entry for recalc:", err)
 			continue
 		}
@@ -751,6 +518,7 @@ WHERE te.user_id = ? AND te.invoice_id = ?`, userID, invoiceID)
 			r.Project = name
 			r.Hourly = rate
 			r.Currency = currency
+			r.ServiceType = serviceType
 		}
 		r.Hours += float64(seconds) / 3600
 		projectHours[pid] = r
@@ -760,8 +528,12 @@ WHERE te.user_id = ? AND te.invoice_id = ?`, userID, invoiceID)
 	var subtotal float64
 	for _, r := range projectHours {
 		amount := r.Hours * r.Hourly
+		description := utils.FormatServiceType(r.ServiceType)
+		if description == "" {
+			description = r.Project
+		}
 		item := models.InvoiceItem{
-			Description: r.Project,
+			Description: description,
 			Quantity:    r.Hours,
 			UnitPrice:   r.Hourly,
 			Amount:      amount,
@@ -770,100 +542,83 @@ WHERE te.user_id = ? AND te.invoice_id = ?`, userID, invoiceID)
 		subtotal += amount
 	}
 
+	// Update invoice record
+	itemsBytes, _ := json.Marshal(items)
+	itemsJSON := string(itemsBytes)
 	taxAmount := subtotal * taxRate
 	total := subtotal + taxAmount
 
-	itemsBytes, _ := json.Marshal(items)
-	itemsJSON := string(itemsBytes)
-
-	_, err = s.db.Exec(`
+	if _, err := s.db.Exec(`
 UPDATE invoices
-SET subtotal = ?, tax_amount = ?, total = ?, items_json = ?
-WHERE id = ? AND user_id = ?`,
-		subtotal, taxAmount, total, itemsJSON, invoiceID, userID)
-	if err != nil {
+SET subtotal=?, tax_amount=?, total=?, items_json=?
+WHERE id=? AND user_id=?`, subtotal, taxAmount, total, itemsJSON, invoiceID, userID); err != nil {
 		return dto.InvoiceOutput{}, fmt.Errorf("failed to update invoice totals: %w", err)
 	}
 
-	// Return refreshed invoice dto
+	// Fetch updated
 	return s.Get(userID, invoiceID)
 }
 
-// sendViaSMTP sends email using SMTP protocol.
-func (s *InvoiceService) sendViaSMTP(
-	settings dto.InvoiceEmailSettings,
-	toEmail string,
-	subject string,
-	body string,
-	pdfBytes []byte,
-	invoiceNumber string,
-) error {
-	// Setup SMTP auth
-	auth := smtp.PlainAuth(
-		"",
-		settings.SMTPUsername,
-		settings.SMTPPassword,
-		settings.SMTPHost,
-	)
+func (s *InvoiceService) sendViaSMTP(settings dto.InvoiceEmailSettings, toEmail, subject, body string, pdfBytes []byte, invoiceNumber string) error {
+	// Setup auth
+	auth := smtp.PlainAuth("", settings.SMTPUsername, settings.SMTPPassword, settings.SMTPHost)
 
-	// Create email message
+	// Setup headers
 	headers := make(map[string]string)
 	headers["From"] = settings.FromEmail
 	headers["To"] = toEmail
 	headers["Subject"] = subject
 	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "multipart/mixed; boundary=boundary"
+	boundary := "f46d043c8aa2b9211f43924705572551" // Random boundary
+	headers["Content-Type"] = "multipart/mixed; boundary=" + boundary
 
-	// Build message body
-	var message strings.Builder
+	// Body buffer
+	var msg bytes.Buffer
 	for k, v := range headers {
-		message.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
 	}
-	message.WriteString("\r\n")
+	msg.WriteString("\r\n")
 
-	// Text part
-	message.WriteString("--boundary\r\n")
-	message.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
-	message.WriteString("\r\n")
-	message.WriteString(body)
-	message.WriteString("\r\n")
+	// Message body
+	msg.WriteString("--" + boundary + "\r\n")
+	msg.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(body)
+	msg.WriteString("\r\n")
 
-	// PDF attachment part
-	encodedPDF := base64.StdEncoding.EncodeToString(pdfBytes)
-	message.WriteString("--boundary\r\n")
-	message.WriteString("Content-Type: application/pdf\r\n")
-	message.WriteString("Content-Transfer-Encoding: base64\r\n")
-	message.WriteString(fmt.Sprintf("Content-Disposition: attachment; filename=\"INV-%s.pdf\"\r\n", invoiceNumber))
-	message.WriteString("\r\n")
-	// Split PDF into lines of 76 characters (RFC 2045)
-	for i := 0; i < len(encodedPDF); i += 76 {
+	// Attachment
+	msg.WriteString("--" + boundary + "\r\n")
+	msg.WriteString("Content-Type: application/pdf; name=\"invoice-" + invoiceNumber + ".pdf\"\r\n")
+	msg.WriteString("Content-Transfer-Encoding: base64\r\n")
+	msg.WriteString("Content-Disposition: attachment; filename=\"invoice-" + invoiceNumber + ".pdf\"\r\n")
+	msg.WriteString("\r\n")
+
+	b64 := base64.StdEncoding.EncodeToString(pdfBytes)
+	// Split base64 lines (max 76 chars)
+	for i := 0; i < len(b64); i += 76 {
 		end := i + 76
-		if end > len(encodedPDF) {
-			end = len(encodedPDF)
+		if end > len(b64) {
+			end = len(b64)
 		}
-		message.WriteString(encodedPDF[i:end] + "\r\n")
+		msg.WriteString(b64[i:end] + "\r\n")
 	}
-	message.WriteString("--boundary--\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString("--" + boundary + "--")
 
-	// Dial SMTP server
+	// SMTP Connection (support TLS/StartTLS)
 	addr := fmt.Sprintf("%s:%d", settings.SMTPHost, settings.SMTPPort)
 
-	// Use TLS if specified
-	if settings.SMTPUseTLS {
+	// If port 465, use implicit TLS
+	if settings.SMTPPort == 465 {
 		tlsConfig := &tls.Config{
-			ServerName: settings.SMTPHost,
-			MinVersion: tls.VersionTLS12,
+			InsecureSkipVerify: false,
+			ServerName:         settings.SMTPHost,
 		}
 		conn, err := tls.Dial("tcp", addr, tlsConfig)
 		if err != nil {
-			log.Printf("SMTP: TLS dial failed: %v", err)
-			return fmt.Errorf("TLS dial failed: %w", err)
+			log.Printf("SMTP: Auth failed: %v", err)
+			return fmt.Errorf("authentication failed: %w", err)
 		}
-		defer func() {
-			if err := conn.Close(); err != nil {
-				log.Printf("SMTP: TLS conn close failed: %v", err)
-			}
-		}()
 
 		client, err := smtp.NewClient(conn, settings.SMTPHost)
 		if err != nil {
@@ -897,7 +652,7 @@ func (s *InvoiceService) sendViaSMTP(
 			return fmt.Errorf("data command failed: %w", err)
 		}
 
-		if _, err := w.Write([]byte(message.String())); err != nil {
+		if _, err := w.Write(msg.Bytes()); err != nil {
 			log.Printf("SMTP: Write failed: %v", err)
 			if closeErr := w.Close(); closeErr != nil {
 				log.Printf("SMTP: Close writer after write failure failed: %v", closeErr)
@@ -946,7 +701,7 @@ func (s *InvoiceService) sendViaSMTP(
 		return fmt.Errorf("data command failed: %w", err)
 	}
 
-	if _, err := w.Write([]byte(message.String())); err != nil {
+	if _, err := w.Write(msg.Bytes()); err != nil {
 		log.Printf("SMTP: Write failed: %v", err)
 		if closeErr := w.Close(); closeErr != nil {
 			log.Printf("SMTP: Close writer after write failure failed: %v", closeErr)

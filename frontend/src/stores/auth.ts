@@ -6,6 +6,8 @@ import {
   GetAllUsers,
   GetUserByID,
   HasUsers,
+  UpdateUser,
+  ChangePassword,
 } from "../wailsjs/go/services/AuthService";
 import { dto } from "../wailsjs/go/models";
 import { useAppStore } from "./app";
@@ -127,6 +129,37 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("lastAuthedRoute");
   }
 
+  async function updateProfile(input: dto.UpdateUserInput) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const user = await UpdateUser(input);
+      currentUser.value = user;
+      await fetchAllUsers(); // Refresh list to update avatar/username
+      return user;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to update profile";
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function changePassword(input: dto.ChangePasswordInput) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const success = await ChangePassword(input);
+      return success;
+    } catch (e) {
+      error.value =
+        e instanceof Error ? e.message : "Failed to change password";
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     // State
     currentUser,
@@ -147,5 +180,7 @@ export const useAuthStore = defineStore("auth", () => {
     clearError,
     switchUser,
     fetchAllUsers,
+    updateProfile,
+    changePassword,
   };
 });

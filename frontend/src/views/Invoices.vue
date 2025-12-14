@@ -3,7 +3,7 @@ import { h, onMounted, ref, computed } from 'vue'
 import {
   NButton, NDataTable, NSpace, NText, NNumberAnimation, NIcon,
   NModal, NInput, NRow, NCol, NEmpty, NStatistic,
-  type DataTableColumns, useMessage
+  type DataTableColumns, NPopconfirm, useMessage
 } from 'naive-ui'
 import PageContainer from '@/components/PageContainer.vue'
 import InvoiceFormModal from '@/components/InvoiceFormModal.vue'
@@ -12,14 +12,17 @@ import { useClientStore } from '@/stores/clients'
 import { useTimesheetStore } from '@/stores/timesheet'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import type { Invoice, TimeEntry, Project, CreateInvoiceInput, UpdateInvoiceInput } from '@/types'
+import type { Invoice, CreateInvoiceInput, UpdateInvoiceInput } from '@/types'
 import {
   PlusOutlined,
   DownloadOutlined,
   FileTextOutlined,
   DollarOutlined,
   MailOutlined,
-  SearchOutlined
+  SearchOutlined,
+  CheckOutlined,
+  UndoOutlined,
+  DeleteOutlined
 } from '@vicons/antd'
 import { api } from '@/api'
 
@@ -34,9 +37,6 @@ const { t } = useI18n()
 
 const showModal = ref(false)
 const editingInvoice = ref<Invoice | null>(null)
-const entrySelectorVisible = ref(false)
-const entrySelection = ref<number[]>([])
-const activeInvoiceId = ref<number | null>(null)
 const pdfLoading = ref(false)
 const sendLoading = ref(false)
 const messageModalVisible = ref(false)
@@ -44,8 +44,6 @@ const messageDraft = ref("")
 const exportingInvoice = ref<EnrichedInvoice | null>(null)
 const searchQuery = ref('')
 const statusFilter = ref<string | null>(null)
-
-type EntryRow = TimeEntry & { project?: Project }
 
 // Computed
 const filteredInvoices = computed(() => {
@@ -80,20 +78,7 @@ function handleEditInvoice(invoice: Invoice) {
   showModal.value = true
 }
 
-function openEntrySelector(invoice: EnrichedInvoice) {
-  activeInvoiceId.value = invoice.id
-  entrySelection.value = enrichedEntries.value
-    .filter((e) => e.invoiceId === invoice.id)
-    .map((e) => e.id)
-  entrySelectorVisible.value = true
-}
 
-async function applyEntrySelection() {
-  if (!activeInvoiceId.value) return
-  await invoiceStore.setTimeEntries(activeInvoiceId.value, entrySelection.value)
-  entrySelectorVisible.value = false
-  message.success(t('invoices.entriesUpdated'))
-}
 
 async function handleDownload(invoice: EnrichedInvoice) {
   try {
@@ -150,9 +135,30 @@ async function handleSend(invoice: EnrichedInvoice) {
   }
 }
 
-async function handleUpdateInvoice(invoice: UpdateInvoiceInput) {
+async function handleDelete(invoice: EnrichedInvoice) {
   try {
-    await invoiceStore.updateInvoice(invoice)
+    await invoiceStore.deleteInvoice(invoice.id)
+    message.success(t('invoices.deleteSuccess'))
+  } catch (e) {
+    message.error(t('invoices.deleteError'))
+  }
+}
+
+async function handleTogglePaymentStatus(invoice: EnrichedInvoice) {
+  try {
+    const newStatus = invoice.status === 'paid' ? 'sent' : 'paid'
+    await invoiceStore.updateStatus(invoice.id, newStatus)
+    message.success(t('invoices.updateSuccess'))
+  } catch (e) {
+    message.error(t('invoices.saveError'))
+  }
+}
+
+async function handleUpdateInvoice(payload: { input: UpdateInvoiceInput; timeEntryIds: number[] }) {
+  try {
+    await invoiceStore.updateInvoice(payload.input)
+    await api.invoices.setTimeEntries({ invoiceId: payload.input.id, timeEntryIds: payload.timeEntryIds })
+    await invoiceStore.fetchInvoices() // Refresh to get updated totals/status
     message.success(t('invoices.updateSuccess'))
   } catch {
     message.error(t('invoices.saveError'))
@@ -289,6 +295,27 @@ const columns: DataTableColumns<EnrichedInvoice> = [
             { icon: () => h(DownloadOutlined) }
           ),
           h(
+            NPopconfirm,
+            {
+              onPositiveClick: (e: MouseEvent) => { e.stopPropagation(); handleDelete(row); },
+              onNegativeClick: (e: MouseEvent) => { e.stopPropagation(); }
+            },
+            {
+              trigger: () => h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  circle: true,
+                  class: 'action-btn',
+                  onClick: (e) => e.stopPropagation()
+                },
+                { icon: () => h(DeleteOutlined) }
+              ),
+              default: () => t('common.confirmDelete')
+            }
+          ),
+          h(
             NButton,
             {
               size: 'small',
@@ -307,9 +334,10 @@ const columns: DataTableColumns<EnrichedInvoice> = [
               quaternary: true,
               circle: true,
               class: 'action-btn',
-              onClick: (e) => { e.stopPropagation(); openEntrySelector(row); }
+              title: row.status === 'paid' ? t('invoices.actions.markAsUnpaid') : t('invoices.actions.markAsPaid'),
+              onClick: (e) => { e.stopPropagation(); handleTogglePaymentStatus(row); }
             },
-            { icon: () => h(FileTextOutlined) }
+            { icon: () => h(row.status === 'paid' ? UndoOutlined : CheckOutlined) }
           )
         ]
       })
@@ -412,24 +440,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
     </div>
 
     <!-- Modals -->
-    <n-modal v-model:show="entrySelectorVisible" preset="card" :title="t('invoices.selectEntries.title')"
-      style="width: 720px" :segmented="true">
-      <n-data-table :loading="timesLoading" :columns="[
-        { title: t('invoices.selectEntries.columns.date'), key: 'date' },
-        { title: t('invoices.selectEntries.columns.project'), key: 'project', render: (row: EntryRow) => row.project?.name || '-' },
-        { title: t('invoices.selectEntries.columns.hours'), key: 'hours', render: (row: EntryRow) => (row.durationSeconds / 3600).toFixed(2) },
-        { title: t('invoices.selectEntries.columns.linked'), key: 'linked', render: (row: EntryRow) => (row.invoiceId ? '✔' : '') }
-      ]" :data="enrichedEntries.filter((e) => !activeInvoiceId || e.invoiceId === activeInvoiceId || !e.invoiceId)"
-        :row-key="(row: EntryRow) => row.id" checkable :checked-row-keys="entrySelection"
-        @update:checked-row-keys="(keys) => entrySelection = keys as number[]" :max-height="400" />
-      <template #footer>
-        <n-space justify="end">
-          <n-button quaternary @click="entrySelectorVisible = false">{{ t('invoices.selectEntries.cancel') }}</n-button>
-          <n-button type="primary" :loading="loading" @click="applyEntrySelection">{{ t('invoices.selectEntries.apply')
-            }}</n-button>
-        </n-space>
-      </template>
-    </n-modal>
+
 
     <n-modal v-model:show="messageModalVisible" preset="dialog" :title="t('invoices.preparePdf.title')"
       :positive-text="t('invoices.preparePdf.positive')" :negative-text="t('invoices.preparePdf.negative')"

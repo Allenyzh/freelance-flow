@@ -19,6 +19,7 @@ export interface IInvoiceService {
   delete(id: number): Promise<void>;
   getDefaultMessage(id: number): Promise<string>;
   generatePdf(id: number, message?: string): Promise<string>;
-  sendEmail(id: number): Promise<boolean>;
+  sendEmail(id: number): Promise<void>;
   setTimeEntries(input: dto.SetInvoiceTimeEntriesInput): Promise<Invoice>;
+  updateStatus(id: number, status: string): Promise<void>;
 }

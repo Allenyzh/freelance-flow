@@ -37,3 +37,7 @@ export function SetTimeEntries(arg1, arg2) {
 export function Update(arg1, arg2) {
   return window['go']['services']['InvoiceService']['Update'](arg1, arg2);
 }
+
+export function UpdateStatus(arg1, arg2, arg3) {
+  return window['go']['services']['InvoiceService']['UpdateStatus'](arg1, arg2, arg3);
+}

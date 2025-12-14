@@ -11,6 +11,6 @@ export interface InvoiceEmailSettings {
   smtpPort?: number;
   smtpUsername?: string;
   smtpPassword?: string;
-  smtpUseTLS?: boolean;
+  smtpUseTls?: boolean;
   signature?: string;
 }

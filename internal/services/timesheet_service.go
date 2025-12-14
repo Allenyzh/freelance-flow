@@ -37,10 +37,16 @@ func (s *TimesheetService) List(userID int, projectID int) []dto.TimeEntryOutput
 	var entries []models.TimeEntry
 	for rows.Next() {
 		var t models.TimeEntry
-		err := rows.Scan(&t.ID, &t.ProjectID, &t.InvoiceID, &t.Date, &t.StartTime, &t.EndTime, &t.DurationSeconds, &t.Description, &t.Billable, &t.Invoiced)
+		var invoiceID sql.NullInt64
+		err := rows.Scan(&t.ID, &t.ProjectID, &invoiceID, &t.Date, &t.StartTime, &t.EndTime, &t.DurationSeconds, &t.Description, &t.Billable, &t.Invoiced)
 		if err != nil {
 			log.Println("Error scanning time entry:", err)
 			continue
+		}
+		if invoiceID.Valid {
+			t.InvoiceID = int(invoiceID.Int64)
+		} else {
+			t.InvoiceID = 0
 		}
 		entries = append(entries, t)
 	}
@@ -51,9 +57,15 @@ func (s *TimesheetService) List(userID int, projectID int) []dto.TimeEntryOutput
 func (s *TimesheetService) Get(userID int, id int) (dto.TimeEntryOutput, error) {
 	row := s.db.QueryRow("SELECT id, project_id, invoice_id, date, start_time, end_time, duration_seconds, description, billable, invoiced FROM time_entries WHERE id = ? AND user_id = ?", id, userID)
 	var t models.TimeEntry
-	err := row.Scan(&t.ID, &t.ProjectID, &t.InvoiceID, &t.Date, &t.StartTime, &t.EndTime, &t.DurationSeconds, &t.Description, &t.Billable, &t.Invoiced)
+	var invoiceID sql.NullInt64
+	err := row.Scan(&t.ID, &t.ProjectID, &invoiceID, &t.Date, &t.StartTime, &t.EndTime, &t.DurationSeconds, &t.Description, &t.Billable, &t.Invoiced)
 	if err != nil {
 		return dto.TimeEntryOutput{}, err
+	}
+	if invoiceID.Valid {
+		t.InvoiceID = int(invoiceID.Int64)
+	} else {
+		t.InvoiceID = 0
 	}
 	return mapper.ToTimeEntryOutput(t), nil
 }
