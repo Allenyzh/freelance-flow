@@ -1,65 +1,72 @@
 version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
-
-formatters:
-  gofmt:
-    simplify: true
-  goimports:
-    local-prefixes: freelance-flow
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
+    - gosec
     - govet
     - ineffassign
+    - misspell
+    - revive
     - staticcheck
     - unused
-    - revive
-    - gosec
-    - misspell
     - whitespace
-linters-settings:
-  goimports:
-    local-prefixes: freelance-flow
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: var-naming
+          disabled: true
+        - name: unused-parameter
+          disabled: true
+        - name: blank-imports
+          disabled: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      - name: package-comments
-        disabled: true
-      - name: exported
-        disabled: true
-      - name: var-naming
-        disabled: true
-      - name: unused-parameter
-        disabled: true
-      - name: blank-imports
-        disabled: true
-
-issues:
-  exclude-dirs:
-    - frontend
-    - build
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
-        - errcheck
-
-    # Ignore specific recurring patterns
-    - text: "G107|G204|G304|G306"
-      linters:
-        - gosec
-    - text: "Close` is not checked"
-      linters:
-        - errcheck
-    - text: "Encode` is not checked"
-      linters:
-        - errcheck
-    - text: "should have comment"
-      linters:
-        - revive
-    - text: "should be"
-      linters:
-        - revive
+      - linters:
+          - errcheck
+          - gosec
+        path: _test\.go
+      - linters:
+          - gosec
+        text: G107|G204|G304|G306
+      - linters:
+          - errcheck
+        text: Close` is not checked
+      - linters:
+          - errcheck
+        text: Encode` is not checked
+      - linters:
+          - revive
+        text: should have comment
+      - linters:
+          - revive
+        text: should be
+    paths:
+      - frontend
+      - build
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  settings:
+    goimports:
+      local-prefixes:
+        - freelance-flow
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -88,6 +88,11 @@ func createTables(db *sql.DB) {
 			currency TEXT DEFAULT 'USD',
 			status TEXT DEFAULT 'active',
 			notes TEXT,
+			billing_company TEXT,
+			billing_address TEXT,
+			billing_city TEXT,
+			billing_province TEXT,
+			billing_postal_code TEXT,
 			FOREIGN KEY(user_id) REFERENCES users(id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS projects (
@@ -101,6 +106,7 @@ func createTables(db *sql.DB) {
 			status TEXT DEFAULT 'active',
 			deadline TEXT,
 			tags TEXT, -- Comma separated
+			service_type TEXT,
 			FOREIGN KEY(user_id) REFERENCES users(id),
 			FOREIGN KEY(client_id) REFERENCES clients(id)
 		);`,

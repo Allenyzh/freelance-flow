@@ -251,7 +251,7 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 	if emailSettings.Provider == "resend" {
 		apiKey := emailSettings.ResendAPIKey
 		if apiKey == "" {
-			return fmt.Errorf("Resend API key is missing")
+			return fmt.Errorf("resend API key is missing")
 		}
 		subject := utils.ApplyTemplate(emailSettings.SubjectTemplate, invoice)
 		if subject == "" {
@@ -282,7 +282,7 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 		})
 		if err != nil {
 			log.Println("SendEmail: resend send failed:", err)
-			return fmt.Errorf("Resend failed: %v", err)
+			return fmt.Errorf("resend failed: %v", err)
 		}
 		return nil
 	}
@@ -291,16 +291,16 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 	if emailSettings.Provider == "smtp" {
 		// Validate SMTP settings
 		if emailSettings.SMTPHost == "" {
-			return fmt.Errorf("SMTP host is missing")
+			return fmt.Errorf("smtp host is missing")
 		}
 		if emailSettings.SMTPUsername == "" {
-			return fmt.Errorf("SMTP username is missing")
+			return fmt.Errorf("smtp username is missing")
 		}
 		if emailSettings.SMTPPassword == "" {
-			return fmt.Errorf("SMTP password is missing")
+			return fmt.Errorf("smtp password is missing")
 		}
 		if emailSettings.FromEmail == "" {
-			return fmt.Errorf("SMTP from email is missing")
+			return fmt.Errorf("smtp from email is missing")
 		}
 
 		subject := utils.ApplyTemplate(emailSettings.SubjectTemplate, invoice)
@@ -325,7 +325,7 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 		// Send email via SMTP
 		if err := s.sendViaSMTP(emailSettings, client.Email, subject, body, pdfBytes, invoice.Number); err != nil {
 			log.Println("SendEmail: SMTP send failed:", err)
-			return fmt.Errorf("SMTP failed: %w", err)
+			return fmt.Errorf("smtp failed: %w", err)
 		}
 		return nil
 	}
@@ -612,6 +612,7 @@ func (s *InvoiceService) sendViaSMTP(settings dto.InvoiceEmailSettings, toEmail,
 	if settings.SMTPPort == 465 {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: false,
+			MinVersion:         tls.VersionTLS12,
 			ServerName:         settings.SMTPHost,
 		}
 		conn, err := tls.Dial("tcp", addr, tlsConfig)

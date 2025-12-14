@@ -97,6 +97,7 @@ func (r *TemplateRenderer) RenderHTML(templateName string, data InvoiceTemplateD
 	if err != nil {
 		return "", fmt.Errorf("failed to read CSS file: %w", err)
 	}
+	// #nosec G203 -- CSS is loaded from trusted local template files.
 	data.CSS = template.CSS(cssContent)
 
 	// Parse template
@@ -196,6 +197,7 @@ func (r *EmbeddedTemplateRenderer) RenderHTML(templateName string, data InvoiceT
 	if err != nil {
 		return "", fmt.Errorf("failed to read embedded CSS file: %w", err)
 	}
+	// #nosec G203 -- CSS is loaded from trusted embedded template files.
 	data.CSS = template.CSS(cssContent)
 
 	// Read template file
