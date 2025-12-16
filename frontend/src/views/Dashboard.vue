@@ -19,11 +19,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Greeting/Header Section (Optional, or rely on Breadcrumb only? User said "Greeting" in PageHeader) -->
-    <!-- Since PageHeader contained Greeting which is personalized, maybe we want to keep it as a simple text block? -->
-    <!-- Breadcrumb handles "Dashboard", but "Good morning, Roy" was in the header. -->
-    <!-- Let's keep the greeting as a semantic header on the canvas. -->
-
+    <!-- Greeting/Header Section -->
     <div>
       <h2 class="text-3xl font-bold tracking-tight">{{ t('dashboard.greeting', { name: username }) }}</h2>
       <p class="text-muted-foreground">{{ t('dashboard.weekOverview') }}</p>
@@ -119,7 +115,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Scoped styles removed */
-</style>
