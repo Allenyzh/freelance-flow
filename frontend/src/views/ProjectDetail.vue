@@ -3,7 +3,7 @@ import { ref, computed, onMounted, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
     NButton, NCard, NSpace, NTag, NText, NDescriptions, NDescriptionsItem,
-    NIcon, NDataTable, NSpin, NBreadcrumb, NBreadcrumbItem, type DataTableColumns, useMessage
+    NDataTable, NSpin, NBreadcrumb, NBreadcrumbItem, type DataTableColumns, useMessage
 } from 'naive-ui'
 import PageContainer from '@/components/PageContainer.vue'
 import ProjectFormModal from '@/components/ProjectFormModal.vue'
@@ -13,7 +13,7 @@ import { useTimesheetStore } from '@/stores/timesheet'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import type { Project, Client, TimeEntry } from '@/types'
-import { ArrowLeftOutlined, EditOutlined } from '@vicons/antd'
+import { ArrowLeft, Edit } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,7 +95,7 @@ const entryColumns: DataTableColumns<TimeEntry> = [
         }
     },
     {
-        title: t('timesheet.columns.status'),
+        title: t('timesheet.columns.billable'),
         key: 'billable',
         width: 100,
         render(row) {
@@ -118,9 +118,7 @@ const entryColumns: DataTableColumns<TimeEntry> = [
                 <n-space align="center" :size="8" style="margin-bottom: 12px;">
                     <n-button quaternary size="small" @click="handleBack">
                         <template #icon>
-                            <n-icon>
-                                <ArrowLeftOutlined />
-                            </n-icon>
+                            <ArrowLeft class="w-4 h-4" />
                         </template>
                     </n-button>
                     <n-breadcrumb>
@@ -142,9 +140,7 @@ const entryColumns: DataTableColumns<TimeEntry> = [
                                 <span>{{ t('projects.detail.info') }}</span>
                                 <n-button size="small" type="primary" @click="handleEdit">
                                     <template #icon>
-                                        <n-icon>
-                                            <EditOutlined />
-                                        </n-icon>
+                                        <Edit class="w-4 h-4" />
                                     </template>
                                     {{ t('common.edit') }}
                                 </n-button>

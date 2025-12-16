@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import { NButton, NDropdown, NIcon, NSpace, NTooltip } from 'naive-ui'
-import { GlobalOutlined, BulbOutlined, BulbFilled } from '@vicons/antd'
+import { Languages, Moon, Sun } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAppStore } from '@/stores/app'
 import { useI18n } from 'vue-i18n'
 
@@ -20,80 +32,51 @@ function handleLocaleSelect(key: 'zh-CN' | 'en-US') {
 </script>
 
 <template>
-    <div class="auth-layout auth-gradient-bg">
+    <div class="min-h-screen w-screen flex flex-col auth-gradient-bg">
         <!-- Transparent Header on gradient -->
-        <header class="auth-header">
-            <div class="brand">FreelanceFlow</div>
-            <n-space>
-                <n-dropdown :options="localeOptions" @select="handleLocaleSelect">
-                    <n-button quaternary circle>
-                        <template #icon><n-icon>
-                                <GlobalOutlined />
-                            </n-icon></template>
-                    </n-button>
-                </n-dropdown>
-                <n-tooltip trigger="hover">
-                    <template #trigger>
-                        <n-button quaternary circle @click="appStore.toggleTheme()">
-                            <template #icon>
-                                <n-icon>
-                                    <BulbFilled v-if="appStore.theme === 'dark'" />
-                                    <BulbOutlined v-else />
-                                </n-icon>
-                            </template>
-                        </n-button>
-                    </template>
-                    {{ appStore.theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark') }}
-                </n-tooltip>
-            </n-space>
+        <header class="p-4 md:px-8 flex justify-between items-center">
+            <div class="font-(family-name:--font-display) text-xl font-extrabold text-white drop-shadow-md">
+                FreelanceFlow
+            </div>
+            <div class="flex items-center gap-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" class="text-white hover:bg-white/20 rounded-full">
+                            <Languages class="h-5 w-5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem v-for="opt in localeOptions" :key="opt.key"
+                            @click="handleLocaleSelect(opt.key as any)">
+                            {{ opt.label }}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger as-child>
+                            <Button variant="ghost" size="icon" class="text-white hover:bg-white/20 rounded-full"
+                                @click="appStore.toggleTheme()">
+                                <Moon v-if="appStore.theme === 'dark'" class="h-5 w-5" />
+                                <Sun v-else class="h-5 w-5" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{{ appStore.theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark') }}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
         </header>
 
         <!-- Main Content -->
-        <div class="auth-content">
+        <div class="flex-1 min-h-0 flex justify-center items-center p-4 overflow-hidden">
             <RouterView />
         </div>
     </div>
 </template>
 
 <style scoped>
-.auth-layout {
-    min-height: 100vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-}
-
-.auth-header {
-    padding: var(--space-4) var(--space-8);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.brand {
-    font-family: var(--font-display);
-    font-size: var(--text-xl);
-    font-weight: 800;
-    color: white;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.auth-content {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: var(--space-4);
-    overflow: hidden;
-}
-
-/* Override button colors for visibility on gradient */
-.auth-header :deep(.n-button) {
-    color: white;
-}
-
-.auth-header :deep(.n-button:hover) {
-    background-color: rgba(255, 255, 255, 0.15);
-}
+/* Auth gradient background implementation remains here as it is complex custom CSS */
 </style>

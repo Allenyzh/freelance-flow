@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NIcon, NSpin } from 'naive-ui'
-import { RocketOutlined } from '@vicons/antd'
+import { Rocket } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { useBootstrapStore } from '@/stores/bootstrap'
 import SplashProgress from '@/components/SplashProgress.vue'
@@ -164,15 +164,11 @@ function handleStart() {
       <!-- Action Button / Auto-enter -->
       <div class="action-section">
         <SplashProgress v-if="showProgress" :is-ready="isBackendReady" :is-auto-redirecting="isAutoRedirecting" />
-        <n-button v-if="!showProgress && isBackendReady" type="primary" size="large" round class="start-button"
+        <Button v-if="!showProgress && isBackendReady" size="lg" class="start-button rounded-full text-lg h-14 px-12"
           @click="handleStart">
-          <template #icon>
-            <n-icon>
-              <RocketOutlined />
-            </n-icon>
-          </template>
+          <Rocket class="mr-2 h-5 w-5" />
           <span>{{ t('splash.start') }}</span>
-        </n-button>
+        </Button>
       </div>
 
       <!-- Version / Footer -->

@@ -178,6 +178,16 @@ export const api = isWailsRuntime
       reports: wailsReportService,
       invoiceEmailSettings: wailsInvoiceEmailSettingsService,
       statusBar: wailsStatusBarService,
+      finance: {
+        summary: {
+          get: async () => ({
+            totalBalance: 0,
+            totalIncome: 0,
+            totalExpense: 0,
+            cashFlow: 0,
+          }), // Placeholder until backend service exists
+        },
+      },
     }
   : {
       clients: mockClientService,
@@ -277,6 +287,16 @@ export const api = isWailsRuntime
             unpaidTotal,
             currency: settings.currency,
           };
+        },
+      },
+      finance: {
+        summary: {
+          get: async () => ({
+            totalBalance: 0,
+            totalIncome: 0,
+            totalExpense: 0,
+            cashFlow: 0,
+          }),
         },
       },
     };

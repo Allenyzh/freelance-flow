@@ -18,9 +18,7 @@ const StubModal = defineComponent({
   props: { show: { type: Boolean, default: false } },
   setup(props, { slots }) {
     return () =>
-      props.show
-        ? h("div", { class: "n-modal" }, slots.default?.())
-        : null;
+      props.show ? h("div", { class: "n-modal" }, slots.default?.()) : null;
   },
 });
 
@@ -157,9 +155,7 @@ const StubSelect = defineComponent({
           onChange: (e: Event) =>
             emit("update:value", (e.target as HTMLSelectElement).value),
         },
-        props.options.map((opt) =>
-          h("option", { value: opt.value }, opt.label)
-        )
+        props.options.map((opt) => h("option", { value: opt.value }, opt.label))
       );
   },
 });
@@ -209,29 +205,19 @@ vi.mock("naive-ui", async () => {
     NPopover: Stub("NPopover"),
     NTooltip: Stub("NTooltip"),
   };
-  return new Proxy({ ...actual, ...overrides }, {
-    get(target, prop, receiver) {
-      if (prop in target) return Reflect.get(target, prop, receiver);
-      if (typeof prop === "string" && prop.startsWith("N")) return Stub(prop);
-      return undefined;
-    },
-  });
+  return new Proxy(
+    { ...actual, ...overrides },
+    {
+      get(target, prop, receiver) {
+        if (prop in target) return Reflect.get(target, prop, receiver);
+        if (typeof prop === "string" && prop.startsWith("N")) return Stub(prop);
+        return undefined;
+      },
+    }
+  );
 });
 
 const iconStub = { render: () => null };
-
-vi.mock("@vicons/antd", () => {
-  const handler: ProxyHandler<Record<string, unknown>> = {
-    get: () => iconStub,
-    has: () => true,
-    getOwnPropertyDescriptor: () => ({
-      configurable: true,
-      enumerable: true,
-      value: iconStub,
-    }),
-  };
-  return new Proxy({}, handler);
-});
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({

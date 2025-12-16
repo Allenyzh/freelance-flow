@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, onMounted, ref } from 'vue'
 import {
-  NButton, NDataTable, NTag, NSpace, NProgress, NText, NIcon, type DataTableColumns,
+  NButton, NDataTable, NTag, NSpace, NProgress, NText, type DataTableColumns,
   useMessage, useDialog
 } from 'naive-ui'
 import { useRouter } from 'vue-router'
@@ -13,7 +13,7 @@ import { useClientStore } from '@/stores/clients'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import type { Project } from '@/types'
-import { PlusOutlined, EditOutlined, DeleteOutlined, FolderOpenOutlined } from '@vicons/antd'
+import { Plus, Edit, FolderOpen, Trash2 } from 'lucide-vue-next'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -150,7 +150,7 @@ const columns: DataTableColumns<Project> = [
                 router.push(`/projects/${row.id}`)
               }
             },
-            { icon: () => h(FolderOpenOutlined) }
+            { icon: () => h(FolderOpen, { class: 'w-4 h-4' }) }
           ),
           h(
             NButton,
@@ -163,7 +163,21 @@ const columns: DataTableColumns<Project> = [
                 handleEditProject(row)
               }
             },
-            { icon: () => h(EditOutlined) }
+            { icon: () => h(Edit, { class: 'w-4 h-4' }) }
+          ),
+          h(
+            NButton,
+            {
+              size: 'small',
+              quaternary: true,
+              circle: true,
+              type: 'error',
+              onClick: (e) => {
+                e.stopPropagation()
+                handleDeleteProject(row)
+              }
+            },
+            { icon: () => h(Trash2, { class: 'w-4 h-4' }) }
           )
         ]
       })
@@ -178,9 +192,7 @@ const columns: DataTableColumns<Project> = [
       <template #extra>
         <n-button type="primary" @click="handleNewProject">
           <template #icon>
-            <n-icon>
-              <PlusOutlined />
-            </n-icon>
+            <Plus class="w-4 h-4" />
           </template>
           {{ t('projects.addProject') }}
         </n-button>

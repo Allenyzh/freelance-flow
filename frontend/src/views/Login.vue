@@ -1,58 +1,43 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NAvatar, NInput, NIcon, NSpace, NText, NForm, NFormItem, type FormInst } from 'naive-ui'
-import { LockOutlined, PlusOutlined } from '@vicons/antd'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
+import { Plus, Lock } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import type { UserListItem } from '@/types'
 import { loginSchema } from '@/schemas/auth'
-import { useZodRule } from '@/utils/validation'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
 const selectedUser = ref<UserListItem | null>(null)
-const formRef = ref<FormInst | null>(null)
-const formValue = reactive({
-  password: ''
-})
-
-const rules = {
-  password: useZodRule(loginSchema.shape.password)
-}
-
 const isLoggingIn = ref(false)
 const loginError = ref<string | null>(null)
 
-onMounted(() => {
-  // If no users, redirect to register
-  if (authStore.usersList.length === 0) {
-    router.replace('/register')
-  }
+// Form validation schema - only validate password here
+const formSchema = toTypedSchema(z.object({
+  password: loginSchema.shape.password
+}))
+
+const { handleSubmit } = useForm({
+  validationSchema: formSchema,
 })
 
-function selectUser(user: UserListItem) {
-  selectedUser.value = user
-  formValue.password = ''
-  loginError.value = null
-}
-
-function cancelSelection() {
-  selectedUser.value = null
-  formValue.password = ''
-  loginError.value = null
-}
-
-async function handleLogin() {
+const onSubmit = handleSubmit(async (values) => {
   if (!selectedUser.value) return
-
-  try {
-    await formRef.value?.validate()
-  } catch {
-    return // Validation failed
-  }
 
   isLoggingIn.value = true
   loginError.value = null
@@ -60,7 +45,7 @@ async function handleLogin() {
   try {
     await authStore.login({
       username: selectedUser.value.username,
-      password: formValue.password,
+      password: values.password,
     })
     router.push('/dashboard')
   } catch (e) {
@@ -68,6 +53,22 @@ async function handleLogin() {
   } finally {
     isLoggingIn.value = false
   }
+})
+
+onMounted(() => {
+  if (authStore.usersList.length === 0) {
+    router.replace('/register')
+  }
+})
+
+function selectUser(user: UserListItem) {
+  selectedUser.value = user
+  loginError.value = null
+}
+
+function cancelSelection() {
+  selectedUser.value = null
+  loginError.value = null
 }
 
 function goToRegister() {
@@ -76,162 +77,81 @@ function goToRegister() {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-card glass-card">
-      <h1 class="auth-title">{{ t('auth.welcome') }}</h1>
-      <p class="auth-subtitle">{{ t('auth.selectUser') }}</p>
+  <div class="h-full flex items-center justify-center p-4 min-h-0 overflow-auto">
+    <div class="max-w-[520px] w-full p-8 glass-card">
+      <h1 class="font-(family-name:--font-heading) text-3xl font-bold mb-2 text-center text-foreground">{{
+        t('auth.welcome') }}</h1>
+      <p class="text-muted-foreground text-center mb-8">{{ t('auth.selectUser') }}</p>
 
       <!-- User Selection Grid -->
       <Transition name="fade" mode="out-in">
-        <div v-if="!selectedUser" class="user-grid">
-          <div v-for="user in authStore.usersList" :key="user.id" class="user-card" @click="selectUser(user)">
-            <n-avatar :size="80" :src="user.avatarUrl"
-              :fallback-src="`https://api.dicebear.com/9.x/avataaars/svg?seed=${user.username}`" />
-            <span class="user-name">{{ user.username }}</span>
+        <div v-if="!selectedUser"
+          class="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-6 justify-items-center">
+          <div v-for="user in authStore.usersList" :key="user.id"
+            class="flex flex-col items-center gap-3 p-5 rounded-lg cursor-pointer transition-all duration-200 w-[120px] hover:bg-black/5 hover:-translate-y-1 dark:hover:bg-white/10"
+            @click="selectUser(user)">
+            <Avatar class="h-20 w-20">
+              <AvatarImage :src="user.avatarUrl" :alt="user.username" />
+              <AvatarFallback>
+                <img :src="`https://api.dicebear.com/9.x/avataaars/svg?seed=${user.username}`" alt="fallback" />
+              </AvatarFallback>
+            </Avatar>
+            <span class="text-sm font-medium text-foreground">{{ user.username }}</span>
           </div>
 
           <!-- Add New User Card -->
-          <div class="user-card add-user" @click="goToRegister">
-            <div class="add-icon">
-              <n-icon size="40">
-                <PlusOutlined />
-              </n-icon>
+          <div
+            class="flex flex-col items-center gap-3 p-5 rounded-lg cursor-pointer transition-all duration-200 w-[120px] border-2 border-dashed border-border hover:border-primary group"
+            @click="goToRegister">
+            <div
+              class="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+              <Plus class="h-10 w-10" />
             </div>
-            <span class="user-name">{{ t('auth.addUser') }}</span>
+            <span class="text-sm font-medium text-foreground">{{ t('auth.addUser') }}</span>
           </div>
         </div>
 
         <!-- Password Entry -->
-        <div v-else class="password-section">
-          <n-avatar :size="100" :src="selectedUser.avatarUrl"
-            :fallback-src="`https://api.dicebear.com/9.x/avataaars/svg?seed=${selectedUser.username}`" />
-          <h2 class="selected-username">{{ selectedUser.username }}</h2>
+        <div v-else class="flex flex-col items-center gap-5">
+          <Avatar class="h-[100px] w-[100px]">
+            <AvatarImage :src="selectedUser.avatarUrl" :alt="selectedUser.username" />
+            <AvatarFallback>
+              <img :src="`https://api.dicebear.com/9.x/avataaars/svg?seed=${selectedUser.username}`" alt="fallback" />
+            </AvatarFallback>
+          </Avatar>
+          <h2 class="font-(family-name:--font-heading) text-2xl font-semibold m-0 text-foreground">{{
+            selectedUser.username }}</h2>
 
-          <div class="password-form">
-            <n-form ref="formRef" :model="formValue" :rules="rules" @submit.prevent="handleLogin">
-              <n-form-item :show-label="false" path="password">
-                <n-input v-model:value="formValue.password" type="password" :placeholder="t('auth.enterPassword')"
-                  size="large" show-password-on="click" @keyup.enter="handleLogin">
-                  <template #prefix>
-                    <n-icon>
-                      <LockOutlined />
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
+          <div class="w-full max-w-[300px]">
+            <form @submit="onSubmit" class="space-y-4">
+              <FormField v-slot="{ componentField }" name="password">
+                <FormItem>
+                  <FormControl>
+                    <div class="relative items-center">
+                      <Input type="password" placeholder="Password" v-bind="componentField" class="pl-10" />
+                      <span class="absolute start-0 inset-y-0 flex items-center justify-center px-2">
+                        <Lock class="size-4 text-muted-foreground" />
+                      </span>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-              <n-text v-if="loginError" type="error" class="login-error">{{ loginError }}</n-text>
+              <p v-if="loginError" class="text-destructive text-center text-sm font-medium">{{ loginError }}</p>
 
-              <n-space style="margin-top: 12px">
-                <n-button type="primary" size="large" :loading="isLoggingIn" @click="handleLogin">
-                  {{ t('auth.login') }}
-                </n-button>
-                <n-button size="large" @click="cancelSelection">
+              <div class="flex gap-3 mt-3">
+                <Button type="submit" class="w-full" size="lg" :disabled="isLoggingIn">
+                  {{ isLoggingIn ? 'Logging in...' : t('auth.login') }}
+                </Button>
+                <Button type="button" variant="outline" size="lg" @click="cancelSelection">
                   {{ t('common.cancel') }}
-                </n-button>
-              </n-space>
-            </n-form>
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       </Transition>
     </div>
   </div>
 </template>
-
-<style scoped>
-.login-container {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  min-height: 0;
-  overflow: auto;
-}
-
-.login-card {
-  max-width: 520px;
-  width: 100%;
-  padding: var(--space-8);
-}
-
-.user-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--space-6);
-  justify-items: center;
-}
-
-.user-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  width: 120px;
-}
-
-.user-card:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-4px);
-}
-
-.user-card.add-user {
-  border: 2px dashed var(--border-default);
-}
-
-.user-card.add-user:hover {
-  border-color: var(--color-warm-orange);
-}
-
-.add-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-full);
-  background: var(--bg-base);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-}
-
-.user-card.add-user:hover .add-icon {
-  background: var(--color-warm-orange);
-  color: white;
-}
-
-.user-name {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.password-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
-}
-
-.selected-username {
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.password-form {
-  width: 100%;
-  max-width: 300px;
-}
-
-.login-error {
-  display: block;
-  margin-top: 8px;
-  text-align: center;
-}
-</style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { NInput, NSelect, NButton, NIcon, NSpace, NText, useMessage } from 'naive-ui'
-import { PlayCircleOutlined, PauseCircleOutlined, CloseCircleOutlined } from '@vicons/antd'
+import { NInput, NSelect, NButton, NSpace, NText, useMessage } from 'naive-ui'
+import { PlayCircle, PauseCircle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { Project } from '@/types'
 
@@ -175,27 +175,21 @@ watch([description, projectId], () => {
             <n-space :size="8">
                 <n-button v-if="!isRunning" type="primary" circle size="large" @click="handleStart">
                     <template #icon>
-                        <n-icon>
-                            <PlayCircleOutlined />
-                        </n-icon>
+                        <PlayCircle class="w-6 h-6" />
                     </template>
                 </n-button>
 
                 <template v-else>
                     <n-button type="error" circle size="large" @click="handleStop">
                         <template #icon>
-                            <n-icon>
-                                <PauseCircleOutlined />
-                            </n-icon>
+                            <PauseCircle class="w-6 h-6" />
                         </template>
                     </n-button>
 
                     <n-button quaternary circle size="small" @click="handleDiscard"
                         :title="t('timesheet.timer.discard')">
                         <template #icon>
-                            <n-icon>
-                                <CloseCircleOutlined />
-                            </n-icon>
+                            <XCircle class="w-5 h-5" />
                         </template>
                     </n-button>
                 </template>

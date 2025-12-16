@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
-import { NCard, NStatistic, NGrid, NGridItem, NList, NListItem, NThing, NTag, NIcon } from 'naive-ui'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useAuthStore } from '@/stores/auth'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { ClockCircleOutlined, DollarOutlined, RiseOutlined } from '@vicons/antd'
+import { Clock, DollarSign, TrendingUp, Calendar } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { Card, CardContent } from '@/components/ui/card'
 
 const { t } = useI18n()
 const store = useDashboardStore()
@@ -24,224 +24,97 @@ onMounted(() => {
     <PageHeader :title="t('dashboard.greeting', { name: username })" :subtitle="t('dashboard.weekOverview')" />
 
     <!-- Key Metrics Cards -->
-    <div class="metrics-section">
-      <n-grid x-gap="24" y-gap="24" :cols="3">
-        <n-grid-item>
-          <n-card :bordered="true" class="metric-card">
-            <n-statistic :label="t('dashboard.metrics.weeklyHours')">
-              <template #prefix>
-                <div class="icon-box orange">
-                  <n-icon>
-                    <ClockCircleOutlined />
-                  </n-icon>
-                </div>
-              </template>
-              <template #default>
-                <span class="metric-value">{{ store.totalHoursWeek.toFixed(1) }}</span>
-              </template>
-              <template #suffix><span class="metric-unit">{{ t('dashboard.metrics.hoursUnit') }}</span></template>
-            </n-statistic>
-          </n-card>
-        </n-grid-item>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <!-- Weekly Hours -->
+      <Card class="hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
+        <CardContent class="p-6 flex items-center gap-4">
+          <div
+            class="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+            <Clock class="h-6 w-6 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">{{ t('dashboard.metrics.weeklyHours') }}</p>
+            <div class="flex items-baseline gap-1">
+              <span class="text-2xl font-bold tracking-tight">{{ store.totalHoursWeek.toFixed(1) }}</span>
+              <span class="text-sm text-muted-foreground">{{ t('dashboard.metrics.hoursUnit') }}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <n-grid-item>
-          <n-card :bordered="true" class="metric-card">
-            <n-statistic :label="t('dashboard.metrics.monthlyRevenue')">
-              <template #prefix>
-                <div class="icon-box green">
-                  <n-icon>
-                    <DollarOutlined />
-                  </n-icon>
-                </div>
-              </template>
-              <template #default>
-                <span class="metric-value">{{ store.totalRevenueMonth.toLocaleString() }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-grid-item>
+      <!-- Monthly Revenue -->
+      <Card class="hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
+        <CardContent class="p-6 flex items-center gap-4">
+          <div
+            class="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+            <DollarSign class="h-6 w-6 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">{{ t('dashboard.metrics.monthlyRevenue') }}</p>
+            <div class="flex items-baseline gap-1">
+              <span class="text-2xl font-bold tracking-tight">{{ store.totalRevenueMonth.toLocaleString() }}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <n-grid-item>
-          <n-card :bordered="true" class="metric-card">
-            <n-statistic :label="t('dashboard.metrics.pendingAmount')">
-              <template #prefix>
-                <div class="icon-box rose">
-                  <n-icon>
-                    <RiseOutlined />
-                  </n-icon>
-                </div>
-              </template>
-              <template #default>
-                <span class="metric-value">{{ store.pendingAmount.toLocaleString() }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-grid-item>
-      </n-grid>
+      <!-- Pending Amount -->
+      <Card class="hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
+        <CardContent class="p-6 flex items-center gap-4">
+          <div class="h-12 w-12 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+            <TrendingUp class="h-6 w-6 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">{{ t('dashboard.metrics.pendingAmount') }}</p>
+            <div class="flex items-baseline gap-1">
+              <span class="text-2xl font-bold tracking-tight">{{ store.pendingAmount.toLocaleString() }}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
 
     <!-- Recent Activity Section -->
-    <div class="section-container">
-      <div class="section-header">
-        <h2 class="section-title">{{ t('dashboard.recentActivity.title') }}</h2>
-
+    <div class="flex-1 min-h-0 flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold tracking-tight">{{ t('dashboard.recentActivity.title') }}</h2>
       </div>
 
-      <n-card :bordered="true" class="activity-card-container"
-        :content-style="{ padding: 'var(--space-2)', height: '100%', display: 'flex', flexDirection: 'column' }">
-        <div class="activity-scroll-container">
-          <n-list hoverable clickable>
-            <n-list-item v-for="activity in store.recentActivities" :key="activity.id">
-              <template #prefix>
-                <div class="activity-icon-bg">
-                  <n-icon size="18" color="#EA580C">
-                    <ClockCircleOutlined />
-                  </n-icon>
-                </div>
-              </template>
-              <n-thing :title="activity.project" :description="`${activity.date} · ${activity.description}`" />
-              <template #suffix>
-                <span class="hours-badge">{{ t('dashboard.recentActivity.hoursLabel', { hours: activity.hours })
-                }}</span>
-              </template>
-            </n-list-item>
+      <Card class="flex-1 flex flex-col min-h-0">
+        <CardContent class="flex-1 p-0 overflow-hidden flex flex-col">
 
-            <div v-if="store.recentActivities.length === 0" class="empty-state">
-              {{ t('dashboard.recentActivity.empty') }}
+          <div class="flex-1 overflow-y-auto p-4 space-y-1">
+            <template v-if="store.recentActivities.length > 0">
+              <div v-for="activity in store.recentActivities" :key="activity.id"
+                class="group flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                <div
+                  class="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center shrink-0">
+                  <Clock class="h-4.5 w-4.5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <p class="font-medium truncate">{{ activity.project }}</p>
+                    <span
+                      class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap">
+                      {{ t('dashboard.recentActivity.hoursLabel', { hours: activity.hours }) }}
+                    </span>
+                  </div>
+                  <p class="text-sm text-muted-foreground truncate">{{ activity.date }} · {{ activity.description }}</p>
+                </div>
+              </div>
+            </template>
+
+            <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+              <Calendar class="h-12 w-12 mb-4 opacity-20" />
+              <p>{{ t('dashboard.recentActivity.empty') }}</p>
             </div>
-          </n-list>
-        </div>
-      </n-card>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   </PageContainer>
 </template>
 
 <style scoped>
-/* Metrics Section - Fixed height with spacing for hover animation */
-.metrics-section {
-  flex-shrink: 0;
-  padding-top: 8px;
-  margin-bottom: 24px;
-}
-
-/* Metric Cards */
-.metric-card {
-  transition: all var(--transition-normal);
-  overflow: visible;
-}
-
-.metric-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border-color: var(--color-warm-orange);
-  z-index: 1;
-}
-
-/* Metric Typography */
-.metric-value {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  color: var(--n-text-color);
-  letter-spacing: -0.03em;
-}
-
-.metric-unit {
-  font-size: var(--text-base);
-  font-weight: 500;
-  color: var(--n-text-color-3);
-  margin-left: var(--space-1);
-}
-
-/* Activity Section - Fills remaining space */
-.section-container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
-}
-
-.section-title {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--n-text-color-2);
-  margin: 0;
-}
-
-.clickable-tag {
-  cursor: pointer;
-  background-color: var(--n-close-color-hover);
-  color: var(--n-text-color-3);
-}
-
-.clickable-tag:hover {
-  background-color: var(--n-close-color-pressed);
-  color: var(--n-text-color-2);
-}
-
-/* Recent Activity List - prefix icon */
-.activity-icon-bg {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  background-color: var(--color-warning-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hours-badge {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--n-text-color-2);
-  background-color: var(--n-action-color);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-10);
-  color: var(--n-text-color-3);
-}
-
-/* Activity Card Container - Flex fill */
-.activity-card-container {
-  flex: 1;
-  min-height: 0;
-}
-
-/* Activity Scroll Container - Flex fill with scroll */
-.activity-scroll-container {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* Custom scrollbar styling */
-.activity-scroll-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.activity-scroll-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.activity-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--n-scrollbar-color);
-  border-radius: 3px;
-}
-
-.activity-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: var(--n-scrollbar-color-hover);
-}
+/* Scoped styles removed */
 </style>

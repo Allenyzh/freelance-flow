@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref, h } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NCard,
   NGrid,
   NGridItem,
   NStatistic,
-  NIcon,
   NButton,
   NList,
   NListItem,
@@ -14,12 +13,12 @@ import {
   NSpace,
 } from 'naive-ui'
 import {
-  WalletOutlined,
-  RiseOutlined,
-  FallOutlined,
-  DollarOutlined,
-  PlusOutlined,
-} from '@vicons/antd'
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Plus
+} from 'lucide-vue-next'
 import { api } from '@/api'
 import type { FinanceSummary } from '@/types/finance'
 
@@ -55,13 +54,13 @@ onMounted(() => {
       <NSpace>
         <NButton type="primary" ghost>
           <template #icon>
-            <NIcon><PlusOutlined /></NIcon>
+            <Plus class="w-4 h-4" />
           </template>
           {{ t('finance.actions.addTransaction') }}
         </NButton>
         <NButton type="primary">
           <template #icon>
-            <NIcon><WalletOutlined /></NIcon>
+            <Wallet class="w-4 h-4" />
           </template>
           {{ t('finance.actions.addAccount') }}
         </NButton>
@@ -76,7 +75,7 @@ onMounted(() => {
             <NStatistic :label="t('finance.summary.totalBalance')">
               <template #prefix>
                 <div class="icon-box mocha">
-                  <NIcon><WalletOutlined /></NIcon>
+                  <Wallet class="w-6 h-6" />
                 </div>
               </template>
               <template #default>
@@ -91,7 +90,7 @@ onMounted(() => {
             <NStatistic :label="t('finance.summary.totalIncome')">
               <template #prefix>
                 <div class="icon-box green">
-                  <NIcon><RiseOutlined /></NIcon>
+                  <TrendingUp class="w-6 h-6" />
                 </div>
               </template>
               <template #default>
@@ -106,7 +105,7 @@ onMounted(() => {
             <NStatistic :label="t('finance.summary.totalExpenses')">
               <template #prefix>
                 <div class="icon-box red">
-                  <NIcon><FallOutlined /></NIcon>
+                  <TrendingDown class="w-6 h-6" />
                 </div>
               </template>
               <template #default>
@@ -121,7 +120,7 @@ onMounted(() => {
             <NStatistic :label="t('finance.summary.netCashFlow')">
               <template #prefix>
                 <div class="icon-box amber">
-                  <NIcon><DollarOutlined /></NIcon>
+                  <DollarSign class="w-6 h-6" />
                 </div>
               </template>
               <template #default>
@@ -249,8 +248,9 @@ onMounted(() => {
   background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
 }
 
-.icon-box .n-icon {
-  font-size: 24px;
+.icon-box svg {
+  width: 24px;
+  height: 24px;
 }
 
 .metric-value {

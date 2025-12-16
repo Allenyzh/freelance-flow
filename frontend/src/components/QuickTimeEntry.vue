@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NInput, NSelect, NDatePicker, NButton, NIcon, NTooltip, useMessage } from 'naive-ui'
-import { PlusOutlined, CalendarOutlined, ClockCircleOutlined, DollarOutlined } from '@vicons/antd'
+import { NInput, NSelect, NDatePicker, NButton, NTooltip, useMessage } from 'naive-ui'
+import { Plus, Calendar, Clock, DollarSign } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { Project } from '@/types'
 
@@ -124,9 +124,7 @@ function toggleBillable() {
     <div class="compact-entry-bar">
         <!-- Date Picker with Calendar Icon -->
         <div class="entry-cell date-cell">
-            <n-icon class="cell-icon" size="16">
-                <CalendarOutlined />
-            </n-icon>
+            <Calendar class="cell-icon w-4 h-4" />
             <n-date-picker v-model:formatted-value="date" type="date" value-format="yyyy-MM-dd" class="date-picker"
                 size="small" />
         </div>
@@ -151,9 +149,7 @@ function toggleBillable() {
 
         <!-- Duration Input with Clock Icon -->
         <div class="entry-cell duration-cell">
-            <n-icon class="cell-icon" size="16">
-                <ClockCircleOutlined />
-            </n-icon>
+            <Clock class="cell-icon w-4 h-4" />
             <n-input v-model:value="durationInput" placeholder="0:00" class="duration-input" @keydown="handleKeydown"
                 size="small" />
         </div>
@@ -167,9 +163,7 @@ function toggleBillable() {
                     <n-button :type="isBillable ? 'primary' : 'default'" :quaternary="!isBillable" size="small" circle
                         @click="toggleBillable">
                         <template #icon>
-                            <n-icon>
-                                <DollarOutlined />
-                            </n-icon>
+                            <DollarSign class="w-4 h-4" />
                         </template>
                     </n-button>
                 </template>
@@ -180,9 +174,7 @@ function toggleBillable() {
         <!-- Add Entry Button -->
         <n-button type="success" :disabled="!isValid" @click="handleSubmit" size="small" class="add-entry-btn">
             <template #icon>
-                <n-icon>
-                    <PlusOutlined />
-                </n-icon>
+                <Plus class="w-4 h-4" />
             </template>
             {{ t('timesheet.entries.addEntry') }}
         </n-button>

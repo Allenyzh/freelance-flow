@@ -10,10 +10,9 @@ import {
   NCard,
   NDivider,
   NAvatar,
-  NIcon,
   NTooltip,
 } from "naive-ui";
-import { ReloadOutlined, UploadOutlined } from "@vicons/antd";
+import { RefreshCw, Upload } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { dto } from "@/wailsjs/go/models";
 import { useI18n } from "vue-i18n";
@@ -135,9 +134,7 @@ async function handleChangePassword() {
                 <template #trigger>
                   <NButton circle secondary class="random-avatar-btn" size="small" @click="handleRandomAvatar">
                     <template #icon>
-                      <NIcon>
-                        <ReloadOutlined />
-                      </NIcon>
+                      <RefreshCw class="w-4 h-4" />
                     </template>
                   </NButton>
                 </template>
@@ -147,9 +144,7 @@ async function handleChangePassword() {
 
             <NButton secondary @click="handleUploadAvatar" class="upload-btn">
               <template #icon>
-                <NIcon>
-                  <UploadOutlined />
-                </NIcon>
+                <Upload class="w-4 h-4" />
               </template>
               {{ t("settings.profile.fields.uploadAvatar") || "Upload Photo" }}
             </NButton>

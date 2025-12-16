@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, onMounted, ref, computed } from 'vue'
 import {
-  NButton, NDataTable, NSpace, NText, NNumberAnimation, NIcon,
+  NButton, NDataTable, NSpace, NText, NNumberAnimation,
   NModal, NInput, NRow, NCol, NEmpty, NStatistic,
   type DataTableColumns, NPopconfirm, useMessage
 } from 'naive-ui'
@@ -15,16 +15,16 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import type { Invoice, CreateInvoiceInput, UpdateInvoiceInput } from '@/types'
 import {
-  PlusOutlined,
-  DownloadOutlined,
-  FileTextOutlined,
-  DollarOutlined,
-  MailOutlined,
-  SearchOutlined,
-  CheckOutlined,
-  UndoOutlined,
-  DeleteOutlined
-} from '@vicons/antd'
+  Plus,
+  Download,
+  FileText,
+  DollarSign,
+  Mail,
+  Search,
+  Check,
+  Undo,
+  Trash2
+} from 'lucide-vue-next'
 import { api } from '@/api'
 
 const message = useMessage()
@@ -197,7 +197,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
           onClick: () => handleEditInvoice(row)
         },
         [
-          h(NIcon, { size: 16, component: FileTextOutlined, style: 'margin-right: 8px; color: var(--n-text-color-3);' }),
+          h(FileText, { class: 'w-4 h-4 mr-2 text-muted-foreground' }),
           h(NText, { strong: true, style: 'cursor: pointer; transition: color 0.2s;' }, { default: () => row.number })
         ]
       )
@@ -291,9 +291,9 @@ const columns: DataTableColumns<EnrichedInvoice> = [
               circle: true,
               class: 'action-btn',
               loading: pdfLoading.value && exportingInvoice.value?.id === row.id,
-              onClick: (e) => { e.stopPropagation(); handleDownload(row); }
+              onClick: (e: MouseEvent) => { e.stopPropagation(); handleDownload(row); }
             },
-            { icon: () => h(DownloadOutlined) }
+            { icon: () => h(Download, { class: 'w-4 h-4' }) }
           ),
           h(
             NPopconfirm,
@@ -309,9 +309,9 @@ const columns: DataTableColumns<EnrichedInvoice> = [
                   quaternary: true,
                   circle: true,
                   class: 'action-btn',
-                  onClick: (e) => e.stopPropagation()
+                  onClick: (e: MouseEvent) => e.stopPropagation()
                 },
-                { icon: () => h(DeleteOutlined) }
+                { icon: () => h(Trash2, { class: 'w-4 h-4' }) }
               ),
               default: () => t('common.confirmDelete')
             }
@@ -324,9 +324,9 @@ const columns: DataTableColumns<EnrichedInvoice> = [
               circle: true,
               class: 'action-btn',
               loading: sendLoading.value,
-              onClick: (e) => { e.stopPropagation(); handleSend(row); }
+              onClick: (e: MouseEvent) => { e.stopPropagation(); handleSend(row); }
             },
-            { icon: () => h(MailOutlined) }
+            { icon: () => h(Mail, { class: 'w-4 h-4' }) }
           ),
           h(
             NButton,
@@ -336,9 +336,9 @@ const columns: DataTableColumns<EnrichedInvoice> = [
               circle: true,
               class: 'action-btn',
               title: row.status === 'paid' ? t('invoices.actions.markAsUnpaid') : t('invoices.actions.markAsPaid'),
-              onClick: (e) => { e.stopPropagation(); handleTogglePaymentStatus(row); }
+              onClick: (e: MouseEvent) => { e.stopPropagation(); handleTogglePaymentStatus(row); }
             },
-            { icon: () => h(row.status === 'paid' ? UndoOutlined : CheckOutlined) }
+            { icon: () => h(row.status === 'paid' ? Undo : Check, { class: 'w-4 h-4' }) }
           )
         ]
       })
@@ -353,9 +353,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
       <template #extra>
         <n-button type="primary" class="create-btn" @click="handleNewInvoice">
           <template #icon>
-            <n-icon>
-              <PlusOutlined />
-            </n-icon>
+            <Plus class="w-4 h-4" />
           </template>
           {{ t('invoices.createInvoice') }}
         </n-button>
@@ -373,9 +371,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
           <n-col :span="12">
             <div class="stat-card primary">
               <div class="stat-icon">
-                <n-icon>
-                  <DollarOutlined />
-                </n-icon>
+                <DollarSign class="w-6 h-6" />
               </div>
               <n-statistic :label="t('invoices.stats.outstandingAmount')">
                 <template #default>
@@ -390,9 +386,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
           <n-col :span="12">
             <div class="stat-card secondary">
               <div class="stat-icon secondary">
-                <n-icon>
-                  <FileTextOutlined />
-                </n-icon>
+                <FileText class="w-6 h-6" />
               </div>
               <n-statistic :label="t('invoices.stats.totalInvoices')">
                 <n-number-animation :from="0" :to="enrichedInvoices.length" />
@@ -407,7 +401,7 @@ const columns: DataTableColumns<EnrichedInvoice> = [
         <div class="toolbar">
           <n-input v-model:value="searchQuery" :placeholder="t('invoices.searchPlaceholder')" class="search-input">
             <template #prefix>
-              <n-icon :component="SearchOutlined" />
+              <Search class="w-4 h-4 text-muted-foreground" />
             </template>
           </n-input>
           <div class="filters">

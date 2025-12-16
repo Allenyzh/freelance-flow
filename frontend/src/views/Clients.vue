@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, onMounted, computed, ref } from 'vue'
 import {
-  NButton, NDataTable, NTag, NSpace, NText, NIcon,
+  NButton, NDataTable, NTag, NSpace, NText,
   type DataTableColumns, useMessage, useDialog
 } from 'naive-ui'
 import { useRouter } from 'vue-router'
@@ -13,7 +13,7 @@ import { useProjectStore } from '@/stores/projects'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import type { Client, Project } from '@/types'
-import { PlusOutlined, EditOutlined, DeleteOutlined, RightOutlined } from '@vicons/antd'
+import { Plus, Edit, Trash2, ChevronRight } from 'lucide-vue-next'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -190,9 +190,9 @@ const columns: DataTableColumns<TreeRow> = [
                 size: 'small',
                 quaternary: true,
                 circle: true,
-                onClick: (e) => { e.stopPropagation(); handleEditClient(client) }
+                onClick: (e: MouseEvent) => { e.stopPropagation(); handleEditClient(client) }
               },
-              { icon: () => h(EditOutlined) }
+              { icon: () => h(Edit, { class: 'w-4 h-4' }) }
             ),
             h(
               NButton,
@@ -201,9 +201,9 @@ const columns: DataTableColumns<TreeRow> = [
                 quaternary: true,
                 circle: true,
                 type: 'error',
-                onClick: (e) => { e.stopPropagation(); handleDeleteClient(client) }
+                onClick: (e: MouseEvent) => { e.stopPropagation(); handleDeleteClient(client) }
               },
-              { icon: () => h(DeleteOutlined) }
+              { icon: () => h(Trash2, { class: 'w-4 h-4' }) }
             )
           ]
         })
@@ -217,7 +217,7 @@ const columns: DataTableColumns<TreeRow> = [
             circle: true,
             onClick: () => handleViewProject(row.projectId!)
           },
-          { icon: () => h(RightOutlined) }
+          { icon: () => h(ChevronRight, { class: 'w-4 h-4' }) }
         )
       }
     }
@@ -236,9 +236,7 @@ function rowClassName(row: TreeRow) {
       <template #extra>
         <n-button type="primary" @click="handleNewClient">
           <template #icon>
-            <n-icon>
-              <PlusOutlined />
-            </n-icon>
+            <Plus class="w-4 h-4" />
           </template>
           {{ t('clients.addClient') }}
         </n-button>

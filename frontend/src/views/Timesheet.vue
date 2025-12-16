@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, h } from 'vue'
 import {
-  NButton, NCard, NTag, NSpace, NText, NEmpty, NIcon,
-  NPopconfirm, NDataTable,
+  NButton, NCard, NTag, NSpace, NText, NEmpty, NPopconfirm, NDataTable,
   useMessage
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -18,11 +17,11 @@ import { useI18n } from 'vue-i18n'
 import type { TimeEntry } from '@/types'
 import { dateOnlySortKey, formatISODateOnlyForLocale } from '@/utils/date'
 import {
-  ClockCircleOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  DownloadOutlined
-} from '@vicons/antd'
+  Clock,
+  Edit,
+  Trash2,
+  Download
+} from 'lucide-vue-next'
 
 const message = useMessage()
 const timesheetStore = useTimesheetStore()
@@ -123,7 +122,7 @@ const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string
               handleEdit(row)
             }
           }, {
-            icon: () => h(NIcon, { size: 14 }, () => h(EditOutlined))
+            icon: () => h(Edit, { class: 'w-3.5 h-3.5' })
           }),
           h(NPopconfirm, {
             onPositiveClick: () => handleDelete(row.id)
@@ -134,7 +133,7 @@ const columns = computed<DataTableColumns<TimeEntry & { project?: { name: string
               size: 'tiny',
               type: 'error'
             }, {
-              icon: () => h(NIcon, { size: 14 }, () => h(DeleteOutlined))
+              icon: () => h(Trash2, { class: 'w-3.5 h-3.5' })
             }),
             default: () => t('timesheet.entry.deleteConfirm')
           })
@@ -251,9 +250,7 @@ onMounted(() => {
           <n-text strong class="section-title">{{ t('timesheet.entries.title') }}</n-text>
           <n-button quaternary size="small" @click="handleExportCSV">
             <template #icon>
-              <n-icon>
-                <DownloadOutlined />
-              </n-icon>
+              <Download class="w-4 h-4" />
             </template>
             {{ t('timesheet.entries.exportCSV') }}
           </n-button>
@@ -271,9 +268,7 @@ onMounted(() => {
       <div v-else-if="entries.length === 0" class="empty-state">
         <n-empty :description="t('timesheet.noEntries')">
           <template #icon>
-            <n-icon size="48" color="var(--n-text-color-3)">
-              <ClockCircleOutlined />
-            </n-icon>
+            <Clock class="w-12 h-12 text-muted-foreground" />
           </template>
           <template #extra>
             <n-space vertical align="center">

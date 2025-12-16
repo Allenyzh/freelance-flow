@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import {
-    NLayout, NLayoutSider, NLayoutContent, NLayoutHeader, NLayoutFooter,
-    NMenu, NIcon, NButton, NTooltip, NSpace, NDropdown, NAvatar
-} from 'naive-ui'
-import { ref, watch, h, computed, onMounted, type Component } from 'vue'
+import { ref, watch, computed, onMounted, type Component } from 'vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useStatusBarStore } from '@/stores/statusBar'
 import { useSettingsStore } from '@/stores/settings'
 import { useI18n } from 'vue-i18n'
-import type { MenuOption, DropdownOption } from 'naive-ui'
 import {
     GlobalOutlined,
     BulbOutlined,
@@ -20,10 +15,37 @@ import {
 } from '@vicons/antd'
 import { allModules, isModuleEnabled, isModuleIDEnabled, normalizeModuleOverrides } from '@/modules/registry'
 import type { ModuleNavItem } from '@/modules/types'
-
-function renderIcon(icon: Component) {
-    return () => h(NIcon, null, { default: () => h(icon) })
-}
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+    SidebarProvider,
+    Sidebar,
+    SidebarContent,
+    SidebarHeader,
+    SidebarFooter,
+    SidebarMenu,
+    SidebarMenuItem,
+    SidebarMenuButton,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarInset,
+    SidebarTrigger,
+    SidebarRail
+} from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 
 const router = useRouter()
 const route = useRoute()
@@ -33,62 +55,55 @@ const statusBarStore = useStatusBarStore()
 const settingsStore = useSettingsStore()
 const { t } = useI18n()
 
+// Type definition for our menu items (replacing Naive UI MenuOption)
+interface AppMenuItem {
+    label: string
+    key: string
+    icon?: Component
+    children?: AppMenuItem[]
+}
+
 function isNavItemEnabled(item: ModuleNavItem, overrides: Record<string, boolean> | null): boolean {
     return !item.moduleID || isModuleIDEnabled(item.moduleID, overrides)
 }
 
-function toMenuOption(item: ModuleNavItem, overrides: Record<string, boolean> | null): MenuOption | null {
+function toMenuItem(item: ModuleNavItem, overrides: Record<string, boolean> | null): AppMenuItem | null {
     if (!isNavItemEnabled(item, overrides)) return null
-    const option: MenuOption = {
+
+    // Recursive mapping
+    const menuItem: AppMenuItem = {
         label: t(item.labelKey),
         key: item.key,
+        icon: item.icon
     }
-    if (item.icon) {
-        option.icon = renderIcon(item.icon)
-    }
+
     if (item.children && item.children.length > 0) {
         const children = item.children
-            .map((c) => toMenuOption(c, overrides))
-            .filter((v): v is MenuOption => v !== null)
+            .map((c) => toMenuItem(c, overrides))
+            .filter((v): v is AppMenuItem => v !== null)
         if (children.length > 0) {
-            option.children = children
+            menuItem.children = children
         }
     }
-    return option
+    return menuItem
 }
 
-const menuOptions = computed<MenuOption[]>(() => {
+const menuItems = computed<AppMenuItem[]>(() => {
     const overrides = normalizeModuleOverrides(settingsStore.settings?.moduleOverrides)
     return allModules
         .filter((m) => m.nav)
         .filter((m) => isModuleEnabled(m, { moduleOverrides: overrides }))
-        .map((m) => toMenuOption(m.nav!, overrides))
-        .filter((v): v is MenuOption => v !== null)
+        .map((m) => toMenuItem(m.nav!, overrides))
+        .filter((v): v is AppMenuItem => v !== null)
 })
 
 const activeKey = ref<string>(route.path.substring(1) || 'dashboard')
-const collapsed = ref(false)
 
 // Locale Options
 const localeOptions = [
     { label: '中文 (简体)', key: 'zh-CN' },
     { label: 'English', key: 'en-US' }
 ]
-
-// User Menu Options
-const userMenuOptions = computed<DropdownOption[]>(() => [
-    {
-        label: t('auth.switchUser'),
-        key: 'switch',
-        icon: renderIcon(SwapOutlined)
-    },
-    { type: 'divider', key: 'd1' },
-    {
-        label: t('auth.logout'),
-        key: 'logout',
-        icon: renderIcon(LogoutOutlined)
-    },
-])
 
 function handleLocaleSelect(key: 'zh-CN' | 'en-US') {
     appStore.setLocale(key)
@@ -109,7 +124,7 @@ watch(() => route.path, (newPath) => {
     activeKey.value = newPath.substring(1) || 'dashboard'
 })
 
-function handleMenuUpdate(key: string) {
+function handleMenuClick(key: string) {
     router.push('/' + key)
 }
 
@@ -119,197 +134,150 @@ onMounted(() => {
 </script>
 
 <template>
-    <n-layout class="main-layout">
+    <SidebarProvider>
+        <!-- App Sidebar -->
+        <Sidebar collapsible="icon">
+            <SidebarHeader>
+                <div class="flex items-center gap-2 px-2 py-2">
+                    <!-- Brand Logo -->
+                    <div class="font-display text-xl font-bold tracking-tight text-primary transition-all duration-300"
+                        :class="{ 'scale-0 w-0 opacity-0 overflow-hidden': false /* handled by sidebar state automatically? No, sidebar hides content on collapse */ }">
+                        <!-- Shadcn Sidebar automatically handles collapse, we just put content here -->
+                        <span class="truncate">FreelanceFlow</span>
+                    </div>
+                    <!-- When collapsed, we can show a small icon or initial? Shadcn sidebar handles this with group-data-[collapsible=icon] -->
+                </div>
+            </SidebarHeader>
 
-        <!-- 1. Header Area -->
-        <n-layout-header bordered class="app-header">
-            <div class="header-left">
-                <div class="brand-logo">FreelanceFlow</div>
-            </div>
-            <div class="header-right">
-                <n-space size="large" align="center">
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <SidebarMenuItem v-for="item in menuItems" :key="item.key">
+                                <SidebarMenuButton
+                                    :isActive="activeKey === item.key || activeKey.startsWith(item.key + '/')"
+                                    :tooltip="item.label" @click="handleMenuClick(item.key)">
+                                    <component :is="item.icon" v-if="item.icon" class="h-4 w-4" />
+                                    <span>{{ item.label }}</span>
+                                </SidebarMenuButton>
+                                <!-- Nested items are not fully implemented here as sidebar usually is flat or utilizes Collapsible. 
+                             If deeper nesting is needed, we'd use SidebarMenuSub. 
+                             Assuming flat structure or single level for now based on previous simple NMenu usage. -->
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </SidebarContent>
 
+            <SidebarFooter>
+                <!-- User Menu -->
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <SidebarMenuButton size="lg"
+                                    class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                                    <Avatar class="h-8 w-8 rounded-lg">
+                                        <AvatarImage
+                                            :src="authStore.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${authStore.username}`" />
+                                        <AvatarFallback class="rounded-lg">U</AvatarFallback>
+                                    </Avatar>
+                                    <div class="grid flex-1 text-left text-sm leading-tight">
+                                        <span class="truncate font-semibold">{{ authStore.username }}</span>
+                                        <span class="truncate text-xs text-muted-foreground">{{ t('common.user')
+                                            }}</span>
+                                    </div>
+                                    <SwapOutlined class="ml-auto size-4" />
+                                </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                                side="bottom" align="end" :side-offset="4">
+                                <DropdownMenuItem @click="handleUserMenuSelect('switch')">
+                                    <SwapOutlined class="mr-2 h-4 w-4" />
+                                    {{ t('auth.switchUser') }}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem @click="handleUserMenuSelect('logout')">
+                                    <LogoutOutlined class="mr-2 h-4 w-4" />
+                                    {{ t('auth.logout') }}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
+            <SidebarRail />
+        </Sidebar>
+
+        <!-- Main Content Inset -->
+        <SidebarInset>
+            <!-- Header -->
+            <header
+                class="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                <div class="flex items-center gap-2 px-4">
+                    <SidebarTrigger class="-ml-1" />
+                    <Separator orientation="vertical" class="mr-2 h-4" />
+                    <!-- Breadcrumb could go here -->
+                </div>
+
+                <div class="ml-auto flex items-center gap-4">
                     <!-- Language Switcher -->
-                    <n-dropdown :options="localeOptions" @select="handleLocaleSelect">
-                        <n-button quaternary circle>
-                            <template #icon><n-icon>
-                                    <GlobalOutlined />
-                                </n-icon></template>
-                        </n-button>
-                    </n-dropdown>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" size="icon" class="rounded-full">
+                                <GlobalOutlined class="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem v-for="opt in localeOptions" :key="opt.key"
+                                @click="handleLocaleSelect(opt.key as 'zh-CN' | 'en-US')">
+                                {{ opt.label }}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <!-- Theme Toggle -->
-                    <n-tooltip trigger="hover">
-                        <template #trigger>
-                            <n-button quaternary circle @click="appStore.toggleTheme()">
-                                <template #icon>
-                                    <n-icon>
-                                        <BulbFilled v-if="appStore.theme === 'dark'" />
-                                        <BulbOutlined v-else />
-                                    </n-icon>
-                                </template>
-                            </n-button>
-                        </template>
-                        {{ appStore.theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark') }}
-                    </n-tooltip>
-                </n-space>
-            </div>
-        </n-layout-header>
-
-        <!-- 2. Main Body Area (Sider + Content) -->
-        <n-layout position="absolute" style="top: 64px; bottom: 32px;" has-sider>
-            <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" :collapsed="collapsed"
-                show-trigger @collapse="collapsed = true" @expand="collapsed = false" class="app-sider">
-                <div class="sider-content">
-                    <n-menu :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" :options="menuOptions"
-                        :value="activeKey" @update:value="handleMenuUpdate" />
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <Button variant="ghost" size="icon" class="rounded-full"
+                                    @click="appStore.toggleTheme()">
+                                    <BulbFilled v-if="appStore.theme === 'dark'" class="h-5 w-5" />
+                                    <BulbOutlined v-else class="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{{ appStore.theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark') }}
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
-                <!-- User Menu at bottom of sidebar -->
-                <div class="sider-footer" :class="{ 'collapsed': collapsed }">
-                    <n-dropdown :options="userMenuOptions" @select="handleUserMenuSelect" placement="right-start">
-                        <div class="user-menu-trigger" :class="{ 'collapsed': collapsed }">
-                            <n-avatar :size="collapsed ? 36 : 32"
-                                :src="authStore.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${authStore.username}`" />
-                            <span v-if="!collapsed" class="username">{{ authStore.username }}</span>
-                        </div>
-                    </n-dropdown>
-                </div>
-            </n-layout-sider>
+            </header>
 
-            <n-layout-content class="app-content">
+            <!-- Main Scrollable Area -->
+            <div class="flex-1 flex flex-col gap-4 p-4 pt-0 overflow-auto">
                 <RouterView />
-            </n-layout-content>
-        </n-layout>
-
-        <!-- 3. Footer / Status Bar -->
-        <n-layout-footer bordered position="absolute" class="app-footer">
-            <div class="status-bar">
-                <span class="status-item">{{ t('footer.statusBar') }}</span>
-                <span class="status-item">{{ t('footer.monthlyHours') }} <strong>{{ statusBarStore.monthHoursLabel }}</strong></span>
-                <span class="divider">|</span>
-                <span class="status-item">{{ t('footer.uninvoiced') }} <strong>{{ statusBarStore.uninvoicedTotalLabel }}</strong></span>
-                <span class="divider">|</span>
-                <span class="status-item">{{ t('footer.pendingPayment') }} <strong>{{ statusBarStore.unpaidTotalLabel }}</strong></span>
             </div>
-        </n-layout-footer>
 
-    </n-layout>
+            <!-- Footer / Status Bar -->
+            <footer class="h-8 border-t flex items-center px-6 text-xs text-muted-foreground bg-muted/40">
+                <div class="flex items-center gap-3">
+                    <span class="font-medium">{{ t('footer.statusBar') }}</span>
+                    <span>{{ t('footer.monthlyHours') }} <strong class="text-primary">{{ statusBarStore.monthHoursLabel
+                            }}</strong></span>
+                    <span class="text-muted-foreground/40">|</span>
+                    <span>{{ t('footer.uninvoiced') }} <strong class="text-primary">{{
+                        statusBarStore.uninvoicedTotalLabel }}</strong></span>
+                    <span class="text-muted-foreground/40">|</span>
+                    <span>{{ t('footer.pendingPayment') }} <strong class="text-primary">{{
+                        statusBarStore.unpaidTotalLabel }}</strong></span>
+                </div>
+            </footer>
+        </SidebarInset>
+    </SidebarProvider>
 </template>
 
 <style scoped>
-/* Header Styles */
-.app-header {
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--space-6);
-    z-index: 10;
-}
-
-/* Brand Logo Area */
-.brand-logo {
-    font-family: var(--font-display);
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    color: var(--n-primary-color);
-    letter-spacing: -0.02em;
-}
-
-/* Content Styles */
-.app-content {
-    padding: var(--space-6);
-    height: 100%;
-    overflow: auto;
-}
-
-/* Footer Styles */
-.app-footer {
-    height: 32px;
-    padding: 0 var(--space-6);
-    display: flex;
-    align-items: center;
-    background-color: var(--n-color-modal);
-    color: var(--n-text-color-3);
-    font-size: var(--text-sm);
-    font-family: var(--font-sans);
-    border-top: 1px solid var(--n-border-color);
-}
-
-.main-layout {
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-}
-
-.status-bar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-}
-
-.divider {
-    color: var(--n-text-color-3);
-    opacity: 0.5;
-}
-
-strong {
-    color: var(--n-primary-color);
-    font-weight: 600;
-}
-
-/* Sidebar Layout */
-.app-sider {
-    display: flex;
-    flex-direction: column;
-}
-
-:deep(.app-sider > .n-layout-sider-scroll-container) {
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-.sider-content {
-    flex: 1;
-    overflow: auto;
-}
-
-.sider-footer {
-    padding: 12px 20px;
-    border-top: 1px solid var(--n-border-color);
-}
-
-.sider-footer.collapsed {
-    padding: 12px 0;
-    display: flex;
-    justify-content: center;
-}
-
-/* User Menu - aligned with Naive UI menu item padding */
-.user-menu-trigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    cursor: pointer;
-    transition: opacity var(--transition-normal);
-    width: 100%;
-}
-
-.user-menu-trigger.collapsed {
-    justify-content: center;
-    padding: 8px;
-}
-
-.user-menu-trigger:hover {
-    opacity: 0.8;
-}
-
-.username {
-    font-size: var(--text-sm);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+/* Scoped styles removed in favor of Tailwind classes */
 </style>

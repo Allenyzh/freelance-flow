@@ -1,19 +1,40 @@
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
 import {
-  NButton, NAvatar, NInput, NIcon, NText,
-  NForm, NFormItem, NTooltip, NSelect, type FormInst
-} from 'naive-ui'
+  User, Lock, Mail, RefreshCw,
+  ArrowLeft, ArrowRight, Check
+} from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  UserOutlined, LockOutlined, MailOutlined,
-  ReloadOutlined, ArrowLeftOutlined, ArrowRightOutlined, CheckOutlined
-} from '@vicons/antd'
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useI18n } from 'vue-i18n'
 import { registerProfileSchema, registerPasswordBaseSchema, registerPreferencesSchema } from '@/schemas/auth'
-import { useZodRule } from '@/utils/validation'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -24,53 +45,40 @@ const { t, locale } = useI18n()
 const currentStep = ref(1)
 const totalSteps = 3
 
-// Form Refs
-const step1FormRef = ref<FormInst | null>(null)
-const step2FormRef = ref<FormInst | null>(null)
-const step3FormRef = ref<FormInst | null>(null)
+// Merged Schema for the whole wizard
+const formSchema = toTypedSchema(
+  registerProfileSchema
+    .merge(registerPasswordBaseSchema)
+    .merge(registerPreferencesSchema)
+    .extend({
+      confirmPassword: z.string(),
+      avatarSeed: z.string()
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    })
+)
 
-// Form state
-const formValue = reactive({
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  avatarSeed: Date.now().toString(),
-  language: locale.value || 'zh-CN',
-  currency: 'USD',
-  timezone: (typeof Intl !== "undefined" && Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC"
+// Form setup
+const { handleSubmit, values, setFieldValue, validateField } = useForm({
+  validationSchema: formSchema,
+  initialValues: {
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    avatarSeed: Date.now().toString(),
+    language: locale.value || 'zh-CN',
+    currency: 'USD',
+    timezone: (typeof Intl !== "undefined" && Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC"
+  }
 })
 
 const isRegistering = ref(false)
 const registerError = ref<string | null>(null)
 
-// Rules
-const step1Rules = {
-  username: useZodRule(registerProfileSchema.shape.username),
-  email: useZodRule(registerProfileSchema.shape.email)
-}
-
-// Validation fix for confirm password with Zod logic
-// We'll effectively duplicate the check or use a manual rule for this field to keep UI feedback simple
-const confirmPasswordRule = {
-  validator: (_rule: any, value: string) => {
-    if (value !== formValue.password) {
-      throw new Error(t('auth.passwordsNotMatch'))
-    }
-    return true
-  },
-  trigger: ['input', 'blur']
-}// We can use Zod for the complexity check
-const passwordRule = useZodRule(registerPasswordBaseSchema.shape.password)
-
-const step3Rules = {
-  // Preferences are usually select boxes with defaults, hard to fail, but good to have rules
-  language: useZodRule(registerPreferencesSchema.shape.language),
-  currency: useZodRule(registerPreferencesSchema.shape.currency),
-  timezone: useZodRule(registerPreferencesSchema.shape.timezone)
-}
-
-// Options (Same as before)
+// Options
 const languageOptions = [
   { label: '中文 (简体)', value: 'zh-CN' },
   { label: 'English', value: 'en-US' }
@@ -93,35 +101,31 @@ const timezoneOptions = [
 
 // Computed
 const avatarUrl = computed(() => {
-  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(formValue.avatarSeed)}`
+  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(values.avatarSeed || '')}`
 })
 
 // Functions
 function regenerateAvatar() {
-  formValue.avatarSeed = Date.now().toString() + Math.random().toString(36).substring(7)
+  setFieldValue('avatarSeed', Date.now().toString() + Math.random().toString(36).substring(7))
 }
 
-watch(() => formValue.language, (newLang) => {
-  appStore.setLocale(newLang as 'zh-CN' | 'en-US')
+watch(() => values.language, (newLang) => {
+  if (newLang) appStore.setLocale(newLang as 'zh-CN' | 'en-US')
 })
 
 async function nextStep() {
+  let validGroup = false
   if (currentStep.value === 1) {
-    try {
-      await step1FormRef.value?.validate()
-      currentStep.value++
-    } catch {
-      // Ignore
-    }
+    const r1 = await validateField('username')
+    const r2 = await validateField('email')
+    if (r1.valid && r2.valid) validGroup = true
   } else if (currentStep.value === 2) {
-    try {
-      if (formValue.password !== formValue.confirmPassword) throw new Error() // Double check
-      await step2FormRef.value?.validate()
-      currentStep.value++
-    } catch {
-      // Ignore
-    }
+    const r1 = await validateField('password')
+    const r2 = await validateField('confirmPassword')
+    if (r1.valid && r2.valid) validGroup = true
   }
+
+  if (validGroup) currentStep.value++
 }
 
 function prevStep() {
@@ -130,25 +134,22 @@ function prevStep() {
   }
 }
 
-async function handleRegister() {
+const handleRegister = handleSubmit(async (formValues) => {
   isRegistering.value = true
   registerError.value = null
 
   try {
-    // Final validate just in case
-    await step3FormRef.value?.validate()
-
     const settings = {
-      language: formValue.language,
-      currency: formValue.currency,
-      timezone: formValue.timezone,
+      language: formValues.language,
+      currency: formValues.currency,
+      timezone: formValues.timezone,
       theme: appStore.theme,
     }
 
     await authStore.register({
-      username: formValue.username,
-      password: formValue.password,
-      email: formValue.email || "",
+      username: formValues.username,
+      password: formValues.password,
+      email: formValues.email || "",
       avatarUrl: avatarUrl.value,
       settingsJson: JSON.stringify(settings),
     })
@@ -159,24 +160,28 @@ async function handleRegister() {
   } finally {
     isRegistering.value = false
   }
-}
-
-
+})
 </script>
 
 <template>
-  <div class="register-container">
-    <div class="register-card glass-card">
+  <div class="h-full w-full flex overflow-y-auto p-4 bg-background">
+    <div class="glass-card max-w-[480px] w-full p-6 m-auto">
       <!-- Compact Header: Step Tabs Only -->
-      <div class="compact-header center-content">
+      <div class="flex justify-center mb-6">
         <!-- Inline Step Tabs -->
-        <div class="step-tabs">
-          <div v-for="step in 3" :key="step" class="step-tab" :class="{
-            'tab-active': currentStep === step,
-            'tab-completed': currentStep > step
-          }">
-            <span class="tab-dot" />
-            <span class="tab-label">{{
+        <div class="flex items-center gap-4">
+          <div v-for="step in 3" :key="step"
+            class="flex items-center gap-2 cursor-default transition-colors duration-200" :class="{
+              'text-primary font-semibold': currentStep === step,
+              'text-muted-foreground font-medium': currentStep !== step,
+              'text-muted-foreground/70': currentStep > step
+            }">
+            <div class="w-2 h-2 rounded-full transition-all duration-300" :class="{
+              'bg-primary ring-2 ring-primary/20 w-2.5 h-2.5': currentStep === step,
+              'bg-muted-foreground': currentStep !== step,
+              'bg-primary': currentStep > step
+            }" />
+            <span class="text-sm">{{
               step === 1 ? t('auth.stepProfile') :
                 step === 2 ? t('auth.stepSecurity') :
                   t('auth.stepPreferences')
@@ -186,295 +191,199 @@ async function handleRegister() {
       </div>
 
       <!-- Step Content -->
-      <div class="step-content">
+      <div class="min-h-[240px]">
+
         <!-- Step 1: Profile -->
-        <Transition name="slide" mode="out-in">
-          <div v-if="currentStep === 1" key="step1" class="step-panel">
-            <div class="avatar-section">
-              <n-avatar :size="80" :src="avatarUrl" class="avatar-preview" />
-              <n-tooltip trigger="hover">
-                <template #trigger>
-                  <n-button circle class="refresh-avatar" size="small" @click="regenerateAvatar">
-                    <template #icon>
-                      <n-icon>
-                        <ReloadOutlined />
-                      </n-icon>
-                    </template>
-                  </n-button>
-                </template>
-                {{ t('auth.regenerateAvatar') }}
-              </n-tooltip>
+        <template v-if="currentStep === 1">
+          <!-- Using v-if instead of Transition for layout stability with Shadcn components initially -->
+          <div class="text-center animate-in slide-in-from-right-4 fade-in duration-300">
+            <div class="relative inline-block mb-6 pt-2">
+              <Avatar class="w-24 h-24 border-4 border-card shadow-lg">
+                <AvatarImage :src="avatarUrl" />
+                <AvatarFallback>User</AvatarFallback>
+              </Avatar>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button variant="outline" size="icon"
+                      class="absolute bottom-0 -right-2 h-8 w-8 rounded-full shadow-md bg-card hover:bg-accent"
+                      @click="regenerateAvatar">
+                      <RefreshCw class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {{ t('auth.regenerateAvatar') }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
-            <n-form ref="step1FormRef" :model="formValue" :rules="step1Rules" class="step-form">
-              <n-form-item :label="t('auth.username')" path="username">
-                <n-input v-model:value="formValue.username" :placeholder="t('auth.usernamePlaceholder')" size="large">
-                  <template #prefix>
-                    <n-icon>
-                      <UserOutlined />
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
+            <form @submit.prevent="nextStep" class="text-left space-y-4 max-w-sm mx-auto">
+              <FormField v-slot="{ componentField }" name="username">
+                <FormItem>
+                  <FormLabel>{{ t('auth.username') }}</FormLabel>
+                  <FormControl>
+                    <div class="relative items-center">
+                      <User class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input v-bind="componentField" :placeholder="t('auth.usernamePlaceholder')" class="pl-9" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-              <n-form-item :label="t('auth.email')" path="email" :show-require-mark="false">
-                <n-input v-model:value="formValue.email" :placeholder="t('auth.emailPlaceholder')" size="large">
-                  <template #prefix>
-                    <n-icon>
-                      <MailOutlined />
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
-            </n-form>
+              <FormField v-slot="{ componentField }" name="email">
+                <FormItem>
+                  <FormLabel>{{ t('auth.email') }}</FormLabel>
+                  <FormControl>
+                    <div class="relative items-center">
+                      <Mail class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input v-bind="componentField" :placeholder="t('auth.emailPlaceholder')" class="pl-9" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </form>
           </div>
+        </template>
 
-          <!-- Step 2: Password -->
-          <div v-else-if="currentStep === 2" key="step2" class="step-panel">
-            <h2 class="step-title">{{ t('auth.setPassword') }}</h2>
+        <!-- Step 2: Password -->
+        <template v-else-if="currentStep === 2">
+          <div class="text-center animate-in slide-in-from-right-4 fade-in duration-300">
+            <h2 class="text-xl font-semibold mb-6 tracking-tight">{{ t('auth.setPassword') }}</h2>
 
-            <n-form ref="step2FormRef" :model="formValue"
-              :rules="{ password: passwordRule, confirmPassword: confirmPasswordRule }" class="step-form">
-              <n-form-item :label="t('auth.password')" path="password">
-                <n-input v-model:value="formValue.password" type="password" :placeholder="t('auth.passwordPlaceholder')"
-                  size="large" show-password-on="click">
-                  <template #prefix>
-                    <n-icon>
-                      <LockOutlined />
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
+            <form @submit.prevent="nextStep" class="text-left space-y-4 max-w-sm mx-auto">
+              <FormField v-slot="{ componentField }" name="password">
+                <FormItem>
+                  <FormLabel>{{ t('auth.password') }}</FormLabel>
+                  <FormControl>
+                    <div class="relative items-center">
+                      <Lock class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="password" v-bind="componentField" :placeholder="t('auth.passwordPlaceholder')"
+                        class="pl-9" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-              <n-form-item :label="t('auth.confirmPassword')" path="confirmPassword">
-                <n-input v-model:value="formValue.confirmPassword" type="password"
-                  :placeholder="t('auth.confirmPasswordPlaceholder')" size="large" show-password-on="click">
-                  <template #prefix>
-                    <n-icon>
-                      <LockOutlined />
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
-            </n-form>
+              <FormField v-slot="{ componentField }" name="confirmPassword">
+                <FormItem>
+                  <FormLabel>{{ t('auth.confirmPassword') }}</FormLabel>
+                  <FormControl>
+                    <div class="relative items-center">
+                      <Lock class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="password" v-bind="componentField" :placeholder="t('auth.confirmPasswordPlaceholder')"
+                        class="pl-9" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </form>
           </div>
+        </template>
 
-          <!-- Step 3: Preferences -->
-          <div v-else-if="currentStep === 3" key="step3" class="step-panel">
-            <h2 class="step-title">{{ t('auth.financialPreferences') }}</h2>
+        <!-- Step 3: Preferences -->
+        <template v-else-if="currentStep === 3">
+          <div class="text-center animate-in slide-in-from-right-4 fade-in duration-300">
+            <h2 class="text-xl font-semibold mb-6 tracking-tight">{{ t('auth.financialPreferences') }}</h2>
 
-            <n-form ref="step3FormRef" :model="formValue" :rules="step3Rules" class="step-form">
-              <n-form-item :label="t('auth.language')" path="language">
-                <n-select v-model:value="formValue.language" :options="languageOptions" size="large" />
-              </n-form-item>
+            <form @submit.prevent="handleRegister" class="text-left space-y-4 max-w-sm mx-auto">
+              <FormField v-slot="{ componentField }" name="language">
+                <FormItem>
+                  <FormLabel>{{ t('auth.language') }}</FormLabel>
+                  <Select v-bind="componentField">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem v-for="opt in languageOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-              <n-form-item :label="t('auth.currency')" path="currency">
-                <n-select v-model:value="formValue.currency" :options="currencyOptions" size="large" />
-              </n-form-item>
+              <FormField v-slot="{ componentField }" name="currency">
+                <FormItem>
+                  <FormLabel>{{ t('auth.currency') }}</FormLabel>
+                  <Select v-bind="componentField">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem v-for="opt in currencyOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-              <n-form-item :label="t('auth.timezone')" path="timezone">
-                <n-select v-model:value="formValue.timezone" :options="timezoneOptions" size="large" filterable />
-              </n-form-item>
-            </n-form>
+              <FormField v-slot="{ componentField }" name="timezone">
+                <FormItem>
+                  <FormLabel>{{ t('auth.timezone') }}</FormLabel>
+                  <Select v-bind="componentField">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem v-for="opt in timezoneOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </form>
 
-            <n-text v-if="registerError" type="error" class="error-text">
+            <p v-if="registerError" class="text-destructive text-sm mt-2 font-medium">
               {{ registerError }}
-            </n-text>
+            </p>
           </div>
-        </Transition>
+        </template>
+
       </div>
 
       <!-- Navigation Buttons -->
-      <div class="step-actions">
+      <div class="flex justify-center gap-4 mt-8">
         <!-- Previous Step Button -->
-        <n-button v-if="currentStep > 1" size="large" @click="prevStep">
-          <template #icon>
-            <n-icon>
-              <ArrowLeftOutlined />
-            </n-icon>
-          </template>
+        <Button v-if="currentStep > 1" variant="outline" size="lg" class="min-w-[120px]" @click="prevStep">
+          <ArrowLeft class="w-4 h-4 mr-2" />
           {{ t('common.prev') }}
-        </n-button>
+        </Button>
 
         <!-- Next Step Button -->
-        <n-button v-if="currentStep < totalSteps" type="primary" size="large" @click="nextStep">
+        <Button v-if="currentStep < totalSteps" size="lg" class="min-w-[120px]" @click="nextStep">
           {{ t('common.next') }}
-          <template #icon>
-            <n-icon>
-              <ArrowRightOutlined />
-            </n-icon>
-          </template>
-        </n-button>
+          <ArrowRight class="w-4 h-4 ml-2" />
+        </Button>
 
-        <n-button v-else type="primary" size="large" :loading="isRegistering" @click="handleRegister">
-          <template #icon>
-            <n-icon>
-              <CheckOutlined />
-            </n-icon>
-          </template>
+        <Button v-else size="lg" class="min-w-[120px]" :disabled="isRegistering" @click="handleRegister">
+          <RefreshCw v-if="isRegistering" class="w-4 h-4 mr-2 animate-spin" />
+          <Check v-else class="w-4 h-4 mr-2" />
           {{ t('auth.createProfile') }}
-        </n-button>
+        </Button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Container handles scrolling */
-.register-container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  overflow-y: auto;
-  padding: var(--space-4);
-}
-
-.register-card {
-  max-width: 480px;
-  width: 100%;
-  padding: var(--space-6);
-  /* Safe centering: pushes element to center if space allows, 
-     but avoids top-clipping if content overflows */
-  margin: auto;
-}
-
-/* Compact Header: Center Step Tabs */
-.compact-header.center-content {
-  display: flex;
-  justify-content: center;
-  margin-bottom: var(--space-4);
-}
-
-.back-button {
-  flex-shrink: 0;
-}
-
-.header-spacer {
-  width: 32px;
-  /* Balance with back button */
-  flex-shrink: 0;
-}
-
-/* Inline Step Tabs */
-.step-tabs {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.step-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  cursor: default;
-}
-
-.tab-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--border-default);
-  transition: all var(--transition-normal);
-}
-
-.step-tab.tab-active .tab-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--color-warm-amber);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-}
-
-.step-tab.tab-completed .tab-dot {
-  background: var(--color-success);
-}
-
-.tab-label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-muted);
-  transition: color var(--transition-normal);
-}
-
-.step-tab.tab-active .tab-label {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.step-tab.tab-completed .tab-label {
-  color: var(--text-secondary);
-}
-
-.step-content {
-  min-height: 240px;
-}
-
-.step-panel {
-  text-align: center;
-}
-
-.step-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-xl);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-5) 0;
-}
-
-.avatar-section {
-  position: relative;
-  display: inline-block;
-  margin-bottom: var(--space-5);
-}
-
-.avatar-preview {
-  border: 4px solid var(--bg-card-solid);
-  box-shadow: var(--shadow-lg);
-}
-
-.refresh-avatar {
-  position: absolute;
-  bottom: 0;
-  right: -8px;
-  background: var(--bg-card-solid);
-  box-shadow: var(--shadow-md);
-}
-
-.step-form {
-  text-align: left;
-  max-width: 320px;
-  margin: 0 auto;
-}
-
-.error-text {
-  display: block;
-  text-align: center;
-  margin-top: var(--space-2);
-}
-
-.step-actions {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-
-.step-actions .n-button {
-  min-width: 120px;
-}
-
-/* Step transition */
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.25s ease-out;
-}
-
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
-}
+/* Scoped styles removed in favor of Tailwind classes, keeping empty block or removing entirely. 
+   Removing entirely as everything is utility classes now. 
+*/
 </style>
