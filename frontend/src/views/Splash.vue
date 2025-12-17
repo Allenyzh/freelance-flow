@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Rocket } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { useBootstrapStore } from '@/stores/bootstrap'
@@ -16,6 +15,7 @@ const { t } = useI18n()
 const isBackendReady = ref(false)
 const isAutoRedirecting = ref(false)
 const showProgress = computed(() => !isBackendReady.value || isAutoRedirecting.value)
+const version = __APP_VERSION__
 
 // Typewriter effect state
 const taglines = [
@@ -138,173 +138,109 @@ function handleStart() {
 </script>
 
 <template>
-  <div class="splash-container" :class="{ 'auto-redirecting': isAutoRedirecting }">
+  <div class="fixed inset-0 overflow-hidden" :class="{ 'animate-fade-out': isAutoRedirecting }">
     <!-- Background Image with Ken Burns effect -->
-    <div class="splash-background" />
+    <div class="absolute inset-0 bg-cover bg-center animate-ken-burns"
+      style="background-image: url('/splash_bg.jpg')" />
 
     <!-- Overlay for better text contrast -->
-    <div class="splash-overlay" />
+    <div class="absolute inset-0 bg-linear-to-br from-black/60 via-black/30 to-black/60" />
 
     <!-- Content -->
-    <div class="splash-content">
+    <div class="relative z-10 h-full flex flex-col items-center justify-center p-10 text-center text-white">
       <!-- Logo / Brand -->
-      <div class="brand-section">
-        <h1 class="brand-title">FreelanceFlow</h1>
-        <p class="brand-tagline">
-          <span class="typewriter-text">{{ displayedText }}</span>
-          <span class="cursor" :class="{ typing: isTyping }">|</span>
+      <div class="mb-12 flex flex-col items-center">
+        <h1
+          class="text-6xl font-extrabold tracking-tighter mb-4 drop-shadow-2xl animate-fade-in-up bg-clip-text text-transparent bg-linear-to-b from-white to-white/70">
+          Tally
+        </h1>
+        <p class="text-xl opacity-90 min-h-[1.6em] animate-fade-in-up-delay">
+          <span>{{ displayedText }}</span>
+          <span class="inline-block ml-0.5" :class="isTyping ? 'opacity-100' : 'animate-blink'">|</span>
         </p>
       </div>
 
       <!-- Action Button / Auto-enter -->
-      <div class="action-section">
+      <div class="min-h-20 flex flex-col gap-3 items-center justify-center">
         <SplashProgress v-if="showProgress" :is-ready="isBackendReady" :is-auto-redirecting="isAutoRedirecting" />
-        <Button v-if="!showProgress && isBackendReady" size="lg" class="start-button rounded-full text-lg h-14 px-12"
+        <Button v-if="!showProgress && isBackendReady" size="lg"
+          class="rounded-full text-lg h-14 px-12 min-w-[200px] shadow-xl hover:-translate-y-0.5 hover:shadow-2xl transition-all duration-300"
           @click="handleStart">
-          <Rocket class="mr-2 h-5 w-5" />
           <span>{{ t('splash.start') }}</span>
         </Button>
       </div>
+    </div>
 
-      <!-- Version / Footer -->
-      <div class="splash-footer">
-        <span>v1.0.0</span>
-      </div>
+    <!-- Version Badge - Bottom Right -->
+    <div class="absolute bottom-4 right-4 z-20 text-xs text-white/50 px-2 py-1 bg-black/20 rounded backdrop-blur-sm">
+      v{{ version }}
     </div>
   </div>
 </template>
 
 <style scoped>
-.splash-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100%;
-  overflow: hidden;
+/* Ken Burns animation for background */
+@keyframes kenBurns {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
 }
 
-.splash-container.auto-redirecting {
-  animation: splashFadeOut 0.6s ease forwards;
+.animate-ken-burns {
+  animation: kenBurns 20s ease-in-out infinite alternate;
 }
 
-@keyframes splashFadeOut {
+/* Fade out animation for auto-redirect */
+@keyframes fadeOut {
   to {
     opacity: 0;
     transform: scale(1.02);
   }
 }
 
-.splash-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('/splash_bg.jpg');
-  background-size: cover;
-  background-position: center;
-  animation: kenBurns 20s ease-in-out infinite alternate;
+.animate-fade-out {
+  animation: fadeOut 0.6s ease forwards;
 }
 
-.splash-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--gradient-overlay, linear-gradient(135deg,
-        rgba(0, 0, 0, 0.6) 0%,
-        rgba(0, 0, 0, 0.3) 50%,
-        rgba(0, 0, 0, 0.6) 100%));
+/* Fade in up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.splash-content {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: var(--space-10);
-  text-align: center;
-  color: var(--text-on-gradient);
-}
-
-.brand-section {
-  margin-bottom: var(--space-12);
-}
-
-.brand-title {
-  font-family: var(--font-display);
-  font-size: var(--text-5xl);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 var(--space-4) 0;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+.animate-fade-in-up {
   animation: fadeInUp 1s ease-out;
 }
 
-.brand-tagline {
-  font-size: var(--text-xl);
-  opacity: 0.9;
-  margin: 0;
-  min-height: 1.6em;
+.animate-fade-in-up-delay {
   animation: fadeInUp 1s ease-out 0.2s both;
 }
 
-.typewriter-text {
-  display: inline;
+/* Cursor blink animation */
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
-.cursor {
-  display: inline-block;
-  margin-left: 2px;
+.animate-blink {
   animation: blink 1s step-end infinite;
-}
-
-.cursor.typing {
-  animation: none;
-  opacity: 1;
-}
-
-.action-section {
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: center;
-}
-
-.start-button {
-  padding: 0 var(--space-12);
-  height: 52px;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  min-width: 200px;
-  box-shadow: var(--shadow-xl);
-  transition: all var(--transition-slow);
-}
-
-.start-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
-
-.start-button:disabled {
-  opacity: 0.9;
-  cursor: wait;
-}
-
-.splash-footer {
-  position: absolute;
-  bottom: var(--space-6);
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: var(--text-sm);
-  opacity: 0.6;
 }
 </style>

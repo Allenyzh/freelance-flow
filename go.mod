@@ -1,4 +1,4 @@
-module freelance-flow
+module tally
 
 go 1.25.4
 

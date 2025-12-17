@@ -2,9 +2,9 @@ package services
 
 import (
 	"database/sql"
-	"freelance-flow/internal/dto"
-	"freelance-flow/internal/mapper"
-	"freelance-flow/internal/models"
+	"tally/internal/dto"
+	"tally/internal/mapper"
+	"tally/internal/models"
 	"log"
 )
 

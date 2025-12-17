@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import { Languages, Moon, Sun } from 'lucide-vue-next'
+import TallyLogo from '@/components/TallyLogo.vue'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -35,8 +36,8 @@ function handleLocaleSelect(key: 'zh-CN' | 'en-US') {
     <div class="min-h-screen w-screen flex flex-col auth-gradient-bg">
         <!-- Transparent Header on gradient -->
         <header class="p-4 md:px-8 flex justify-between items-center">
-            <div class="font-(family-name:--font-display) text-xl font-extrabold text-white drop-shadow-md">
-                FreelanceFlow
+            <div class="relative z-20 flex items-center text-lg font-medium">
+                <TallyLogo className="mr-2 h-6 w-6" />
             </div>
             <div class="flex items-center gap-2">
                 <DropdownMenu>

@@ -2,8 +2,8 @@ package main
 
 import (
 	"embed"
-	"freelance-flow/internal/db"
-	"freelance-flow/internal/services"
+	"tally/internal/db"
+	"tally/internal/services"
 	"time"
 
 	"github.com/wailsapp/wails/v2"
@@ -38,15 +38,15 @@ func main() {
 	servicesDuration := time.Since(servicesStart)
 
 	app.SetBootTimings(BootTimings{
-		ProcessStart:    start,
-		DbInitMs:        dbDuration.Milliseconds(),
-		ServicesInitMs:  servicesDuration.Milliseconds(),
-		TotalBeforeUI:   time.Since(start).Milliseconds(),
+		ProcessStart:   start,
+		DbInitMs:       dbDuration.Milliseconds(),
+		ServicesInitMs: servicesDuration.Milliseconds(),
+		TotalBeforeUI:  time.Since(start).Milliseconds(),
 	})
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "FreelanceFlow",
+		Title:     "Tally",
 		Width:     1200,
 		Height:    900,
 		MinWidth:  1024,

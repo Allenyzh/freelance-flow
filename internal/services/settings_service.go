@@ -3,11 +3,11 @@ package services
 import (
 	"database/sql"
 	"encoding/json"
-	"freelance-flow/internal/dto"
-	"freelance-flow/internal/mapper"
-	"freelance-flow/internal/models"
 	"log"
 	"strings"
+	"tally/internal/dto"
+	"tally/internal/mapper"
+	"tally/internal/models"
 )
 
 // SettingsService manages user-level preferences stored in settings_json.
@@ -25,6 +25,10 @@ func (s *SettingsService) Get(userID int) dto.UserSettings {
 	raw := "{}"
 	err := s.db.QueryRow("SELECT settings_json FROM users WHERE id = ?", userID).Scan(&raw)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// This is expected for new users or fresh installs
+			return mapper.ToUserSettingsDTO(defaultUserSettings())
+		}
 		log.Println("Error fetching user settings:", err)
 		return mapper.ToUserSettingsDTO(defaultUserSettings())
 	}

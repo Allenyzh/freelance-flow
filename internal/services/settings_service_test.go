@@ -2,7 +2,7 @@ package services
 
 import (
 	"encoding/json"
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 	"testing"
 )
 
@@ -100,3 +100,22 @@ func TestSettingsService_UpdateNormalizesAndPersists(t *testing.T) {
 	}
 }
 
+func TestSettingsService_Get_NonExistentUser(t *testing.T) {
+	db := setupTestDB(t)
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close db: %v", err)
+		}
+	}()
+
+	svc := NewSettingsService(db)
+	// Use an ID that definitely doesn't exist
+	settings := svc.Get(99999)
+
+	if settings.Currency != "USD" {
+		t.Errorf("expected default currency USD for non-existent user, got %q", settings.Currency)
+	}
+	if settings.Timezone != "UTC" {
+		t.Errorf("expected default timezone UTC for non-existent user, got %q", settings.Timezone)
+	}
+}

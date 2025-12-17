@@ -2,7 +2,7 @@ package services
 
 import (
 	"encoding/json"
-	"freelance-flow/internal/update"
+	"tally/internal/update"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +17,7 @@ func TestUpdateService_CheckForUpdate(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/royzhu/freelance-flow/releases/latest" {
+		if r.URL.Path == "/repos/royzhu/tally/releases/latest" {
 			if err := json.NewEncoder(w).Encode(mockRelease); err != nil {
 				t.Fatalf("failed to encode mock release: %v", err)
 			}

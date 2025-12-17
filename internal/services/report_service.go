@@ -3,7 +3,7 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 	"log"
 	"strings"
 )

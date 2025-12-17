@@ -3,8 +3,8 @@ package services
 import (
 	"database/sql"
 	"encoding/json"
-	"freelance-flow/internal/dto"
-	"freelance-flow/internal/models"
+	"tally/internal/dto"
+	"tally/internal/models"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"

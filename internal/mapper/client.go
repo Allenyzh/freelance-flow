@@ -2,8 +2,8 @@
 package mapper
 
 import (
-	"freelance-flow/internal/dto"
-	"freelance-flow/internal/models"
+	"tally/internal/dto"
+	"tally/internal/models"
 )
 
 // ToClientOutput converts a Client entity to ClientOutput DTO.

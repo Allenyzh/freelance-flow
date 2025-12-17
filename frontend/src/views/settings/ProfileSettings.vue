@@ -151,7 +151,7 @@ function getInitials(username: string): string {
               <FormField v-slot="{ value }" name="avatarUrl">
                 <div class="relative inline-block">
                   <Avatar class="size-28">
-                    <AvatarImage :src="value" :alt="profileForm.values.username" />
+                    <AvatarImage :src="value || ''" :alt="profileForm.values.username" />
                     <AvatarFallback>{{ getInitials(profileForm.values.username || '') }}</AvatarFallback>
                   </Avatar>
 

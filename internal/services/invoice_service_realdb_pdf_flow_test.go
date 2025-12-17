@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -22,13 +22,13 @@ func TestInvoiceService_GeneratePDF_FromLocalDBCopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get home dir: %v", err)
 	}
-	srcDB := filepath.Join(homeDir, ".freelance-flow", "freelance.db")
+	srcDB := filepath.Join(homeDir, ".tally", "tally.db")
 	if _, err := os.Stat(srcDB); err != nil {
 		t.Skipf("local db not found at %s", srcDB)
 	}
 
 	tmpDir := t.TempDir()
-	dstDB := filepath.Join(tmpDir, "freelance.db")
+	dstDB := filepath.Join(tmpDir, "tally.db")
 	// #nosec G304 -- reading a fixed, user-owned local app db path for an integration-style test; we only operate on a temp copy.
 	raw, err := os.ReadFile(srcDB)
 	if err != nil {

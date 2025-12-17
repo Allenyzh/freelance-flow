@@ -2,7 +2,7 @@ package services
 
 import (
 	"database/sql"
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 	"time"
 )
 

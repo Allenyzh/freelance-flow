@@ -4,7 +4,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"freelance-flow/internal/update"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -12,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"tally/internal/update"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -20,7 +20,7 @@ const (
 	// RepoOwner identifies the GitHub account hosting releases.
 	RepoOwner = "royzhu"
 	// RepoName identifies the GitHub repository hosting releases.
-	RepoName = "freelance-flow"
+	RepoName = "tally"
 )
 
 // UpdateService handles application updates.

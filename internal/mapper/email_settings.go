@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"freelance-flow/internal/dto"
-	"freelance-flow/internal/models"
+	"tally/internal/dto"
+	"tally/internal/models"
 	"strings"
 	"time"
 )

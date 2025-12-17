@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"freelance-flow/internal/db"
+	"tally/internal/db"
 )
 
 func main() {

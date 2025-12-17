@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"freelance-flow/internal/update"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"tally/internal/update"
 	"time"
 )
 
@@ -27,7 +27,7 @@ func main() {
 	flag.StringVar(&version, "version", "", "Release version (e.g. 1.0.0)")
 	flag.StringVar(&releaseNotes, "notes", "", "Release notes")
 	flag.StringVar(&repoOwner, "owner", "royzhu", "Repository owner")
-	flag.StringVar(&repoName, "repo", "freelance-flow", "Repository name")
+	flag.StringVar(&repoName, "repo", "tally", "Repository name")
 	flag.StringVar(&output, "output", "update.json", "Output file path")
 	flag.Parse()
 

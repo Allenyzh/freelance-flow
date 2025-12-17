@@ -164,7 +164,7 @@ const handleRegister = handleSubmit(async (formValues) => {
 </script>
 
 <template>
-  <div class="h-full w-full flex overflow-y-auto p-4 bg-background">
+  <div class="h-full w-full flex overflow-y-auto p-4">
     <div class="glass-card max-w-[480px] w-full p-6 m-auto">
       <!-- Compact Header: Step Tabs Only -->
       <div class="flex justify-center mb-6">

@@ -2,7 +2,7 @@ package services
 
 import (
 	"encoding/base64"
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 	"strings"
 	"testing"
 )

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"freelance-flow/internal/dto"
+	"tally/internal/dto"
 	"testing"
 	"time"
 

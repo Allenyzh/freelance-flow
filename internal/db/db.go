@@ -19,12 +19,12 @@ func Init() *sql.DB {
 		log.Fatal("Failed to get user home directory:", err)
 	}
 
-	appDataDir := filepath.Join(homeDir, ".freelance-flow")
+	appDataDir := filepath.Join(homeDir, ".tally")
 	if err := os.MkdirAll(appDataDir, 0700); err != nil {
 		log.Fatal("Failed to create app data directory:", err)
 	}
 
-	dbPath := filepath.Join(appDataDir, "freelance.db")
+	dbPath := filepath.Join(appDataDir, "tally.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
@@ -48,12 +48,12 @@ func Open() (*sql.DB, string, error) {
 		return nil, "", err
 	}
 
-	appDataDir := filepath.Join(homeDir, ".freelance-flow")
+	appDataDir := filepath.Join(homeDir, ".tally")
 	if err := os.MkdirAll(appDataDir, 0700); err != nil {
 		return nil, "", err
 	}
 
-	dbPath := filepath.Join(appDataDir, "freelance.db")
+	dbPath := filepath.Join(appDataDir, "tally.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, "", err
