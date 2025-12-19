@@ -82,11 +82,15 @@ async function handleDelete(id: number) {
 // Form handlers
 async function handleSubmitEntry(entry: Omit<TimeEntry, 'id'> | TimeEntry) {
   try {
-    if ('id' in entry) {
-      await timesheetStore.updateTimeEntry(entry)
+    // Check if id exists AND is a valid number (not undefined/null/0)
+    const isUpdate = 'id' in entry && typeof entry.id === 'number' && entry.id > 0
+    if (isUpdate) {
+      await timesheetStore.updateTimeEntry(entry as TimeEntry)
       toast.success(t('timesheet.entry.updatedMsg'))
     } else {
-      await timesheetStore.createTimeEntry(entry)
+      // Remove id property if it exists but is invalid
+      const { id, ...createData } = entry as TimeEntry
+      await timesheetStore.createTimeEntry(createData)
       toast.success(t('timesheet.messages.logged'))
     }
   } catch {
@@ -224,8 +228,8 @@ onMounted(() => {
 <template>
   <div class="h-full flex flex-col min-h-0">
     <!-- Edit Modal -->
-    <TimesheetFormModal v-model:show="showModal" :entry="editingEntry" :projects="projects"
-      @submit="handleSubmitEntry" />
+    <TimesheetFormModal v-if="showModal" :show="showModal" :entry="editingEntry" :projects="projects"
+      @submit="handleSubmitEntry" @update:show="showModal = $event" />
 
 
     <!-- Time Entries Section -->

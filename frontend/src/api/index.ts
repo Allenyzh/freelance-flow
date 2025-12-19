@@ -49,36 +49,37 @@ const getUserId = () => {
 // Wails service adapters - types are now aligned via re-exports
 const wailsClientService: IClientService = {
   list: () => WailsClientService.List(getUserId()),
-  get: (id) => WailsClientService.Get(getUserId(), id),
+  get: (id) => WailsClientService.Get(getUserId(), Number(id)),
   create: (input) => WailsClientService.Create(getUserId(), input),
   update: (input) => WailsClientService.Update(getUserId(), input),
-  delete: (id) => WailsClientService.Delete(getUserId(), id),
+  delete: (id) => WailsClientService.Delete(getUserId(), Number(id)),
 };
 
 const wailsProjectService: IProjectService = {
   list: () => WailsProjectService.List(getUserId()),
   listByClient: (clientId) =>
-    WailsProjectService.ListByClient(getUserId(), clientId),
-  get: (id) => WailsProjectService.Get(getUserId(), id),
+    WailsProjectService.ListByClient(getUserId(), Number(clientId)),
+  get: (id) => WailsProjectService.Get(getUserId(), Number(id)),
   create: (input) => WailsProjectService.Create(getUserId(), input),
   update: (input) => WailsProjectService.Update(getUserId(), input),
-  delete: (id) => WailsProjectService.Delete(getUserId(), id),
+  delete: (id) => WailsProjectService.Delete(getUserId(), Number(id)),
 };
 
 const wailsTimeEntryService: ITimeEntryService = {
-  list: (projectId) => WailsTimesheetService.List(getUserId(), projectId ?? 0),
-  get: (id) => WailsTimesheetService.Get(getUserId(), id),
+  list: (projectId) =>
+    WailsTimesheetService.List(getUserId(), projectId ? Number(projectId) : 0),
+  get: (id) => WailsTimesheetService.Get(getUserId(), Number(id)),
   create: (input) => WailsTimesheetService.Create(getUserId(), input),
   update: (input) => WailsTimesheetService.Update(getUserId(), input),
-  delete: (id) => WailsTimesheetService.Delete(getUserId(), id),
+  delete: (id) => WailsTimesheetService.Delete(getUserId(), Number(id)),
 };
 
 const wailsInvoiceService: IInvoiceService = {
   list: () => WailsInvoiceService.List(getUserId()),
-  get: (id) => WailsInvoiceService.Get(getUserId(), id),
+  get: (id) => WailsInvoiceService.Get(getUserId(), Number(id)),
   create: (input) => WailsInvoiceService.Create(getUserId(), input),
   update: (input) => WailsInvoiceService.Update(getUserId(), input),
-  delete: (id) => WailsInvoiceService.Delete(getUserId(), id),
+  delete: (id) => WailsInvoiceService.Delete(getUserId(), Number(id)),
   getDefaultMessage: (id) => {
     const wails = window as unknown as {
       go: {
@@ -92,16 +93,23 @@ const wailsInvoiceService: IInvoiceService = {
         };
       };
     };
-    return wails.go.services.InvoiceService.GetDefaultMessage(getUserId(), id);
+    return wails.go.services.InvoiceService.GetDefaultMessage(
+      getUserId(),
+      Number(id)
+    );
   },
   generatePdf: (id, message) =>
-    WailsInvoiceService.GeneratePDF(getUserId(), id, message ?? ""),
-  sendEmail: (id) => WailsInvoiceService.SendEmail(getUserId(), id),
+    WailsInvoiceService.GeneratePDF(getUserId(), Number(id), message ?? ""),
+  sendEmail: (id) => WailsInvoiceService.SendEmail(getUserId(), Number(id)),
   setTimeEntries: (input) =>
     WailsInvoiceService.SetTimeEntries(getUserId(), input),
   updateStatus: (id, status) => {
     // Cast to any to bypass missing type definition until regeneration
-    return (WailsInvoiceService as any).UpdateStatus(getUserId(), id, status);
+    return (WailsInvoiceService as any).UpdateStatus(
+      getUserId(),
+      Number(id),
+      status
+    );
   },
 };
 

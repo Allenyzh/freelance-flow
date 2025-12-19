@@ -70,11 +70,15 @@ async function handleDeleteProject() {
 
 async function handleSubmitProject(project: Omit<Project, 'id'> | Project) {
   try {
-    if ('id' in project) {
-      await projectStore.updateProject(project)
+    // Check if id exists AND is a valid number (not undefined/null/0)
+    const isUpdate = 'id' in project && typeof project.id === 'number' && project.id > 0
+    if (isUpdate) {
+      await projectStore.updateProject(project as Project)
       toast.success(t('projects.updateSuccess'))
     } else {
-      await projectStore.createProject(project)
+      // Remove id property if it exists but is invalid
+      const { id, ...createData } = project as Project
+      await projectStore.createProject(createData)
       toast.success(t('projects.createSuccess'))
     }
   } catch (error) {
@@ -187,8 +191,8 @@ const columns: ColumnDef<Project>[] = [
       <DataTable :columns="columns" :data="projects" />
     </div>
 
-    <ProjectFormModal v-model:show="showModal" :project="editingProject" :clients="clients"
-      @submit="handleSubmitProject" />
+    <ProjectFormModal v-if="showModal" :show="showModal" :project="editingProject" :clients="clients"
+      @submit="handleSubmitProject" @update:show="showModal = $event" />
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="showDeleteDialog">

@@ -12,7 +12,7 @@ export const invoiceEmailSettingsSchema = z.object({
   replyTo: z.string().optional(),
   resendApiKey: z.string().optional(),
   smtpHost: z.string().optional(),
-  smtpPort: z.number().int().optional(),
+  smtpPort: z.coerce.number().int().optional(),
   smtpUsername: z.string().optional(),
   smtpPassword: z.string().optional(),
   smtpUseTls: z.boolean().optional(),
@@ -22,15 +22,15 @@ export const invoiceEmailSettingsSchema = z.object({
 });
 
 export const financeSettingsSchema = z.object({
-  defaultAccountId: z.number().optional(),
+  defaultAccountId: z.coerce.number().optional(),
   autoCategorize: z.boolean(),
   autoReconcile: z.boolean(),
-  userId: z.number(),
+  userId: z.coerce.number(),
 });
 
 export const generalSettingsSchema = z.object({
   currency: z.string().min(1, "Currency is required"),
-  defaultTaxRate: z.number().min(0).max(1),
+  defaultTaxRate: z.coerce.number().min(0).max(1),
   dateFormat: z.string().min(1, "Date format is required"),
   timezone: z.string().min(1, "Timezone is required"),
   language: z.string(),

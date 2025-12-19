@@ -57,7 +57,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 
 interface Props {
-  show: boolean
+  show?: boolean
   invoice?: Invoice | null
   clients: Client[]
 }
@@ -129,12 +129,18 @@ const timeEntries = ref<TimeEntry[]>([])
 const timeEntriesLoading = ref(false)
 const selectedTimeEntryIds = ref<number[]>([])
 
+// Eligible time entries: billable entries that are either:
+// 1. Already linked to this invoice (for editing)
+// 2. Not linked to any invoice yet (available for selection)
 const eligibleTimeEntries = computed(() =>
-  timeEntries.value.filter((e) =>
-    e.billable &&
-    (!e.invoiceId || (props.invoice && e.invoiceId === props.invoice.id)) &&
-    (!e.invoiced || (props.invoice && e.invoiceId === props.invoice.id))
-  )
+  timeEntries.value.filter((e) => {
+    if (!e.billable) return false
+    // Entry is linked to THIS invoice
+    if (props.invoice && e.invoiceId === props.invoice.id) return true
+    // Entry is not linked to any invoice (available)
+    if (!e.invoiceId || e.invoiceId === 0) return true
+    return false
+  })
 )
 
 const selectedHours = computed(() => {
@@ -144,6 +150,12 @@ const selectedHours = computed(() => {
     .reduce((sum, e) => sum + e.durationSeconds, 0)
   return totalSeconds / 3600
 })
+
+// Helper for checkbox state - ensures correct type comparison
+const selectedIdsSet = computed(() => new Set(selectedTimeEntryIds.value))
+function isSelected(entryId: number): boolean {
+  return selectedIdsSet.value.has(entryId)
+}
 
 // Helper date getter/setter factory
 const createDateComputed = (fieldName: 'issueDate' | 'dueDate') => computed({
@@ -205,7 +217,8 @@ watch(
 
     if (!clientId) return
 
-    await loadProjects(clientId)
+    // Ensure clientId is a number (may come as string from Select component)
+    await loadProjects(Number(clientId))
   }
 )
 
@@ -253,34 +266,21 @@ watch(
       // If IS initializing, we might want to populate existing invoice entries.
 
       if (isEditMode.value && props.invoice) {
-        // If editing, prioritize invoice's entries
-        // Wait, if isInitializing is TRUE, we didn't reset selectedTimeEntryIds.
-        // So we just load timeEntries list.
-        // We need to make sure selectedTimeEntryIds are SET somewhere.
-        // They are set in watch(props.invoice) -> but that only runs ONCE.
-        // BUT if timeEntries are empty, we can't select them? 
-        // Actually selection is by ID, so we can set IDs even if entries not loaded yet (for checkbox state).
-        // But for calculations we need entries.
+        // Editing mode: auto-select entries already linked to this invoice
+        console.log('[InvoiceFormModal] timeEntries loaded:', timeEntries.value.length)
+        console.log('[InvoiceFormModal] eligibleTimeEntries:', eligibleTimeEntries.value.length)
 
-        // Let's refine:
-        if (isInitializing.value) {
-          // Just ensure selectedTimeEntryIds are set from invoice (done in main watcher)
-          // and timeEntries are loaded.
-        } else {
-          // New selection by user
-          selectedTimeEntryIds.value = eligibleTimeEntries.value
-            .filter(e => e.invoiceId === props.invoice?.id) // Keep existing if valid?
-            .map(e => e.id)
-          if (!isEditMode.value) {
-            // Select ALL eligible for new invoice
-            selectedTimeEntryIds.value = eligibleTimeEntries.value.map(e => e.id)
-          }
-        }
+        // Auto-select entries that are linked to this invoice
+        const linkedIds = eligibleTimeEntries.value
+          .filter(e => e.invoiceId === props.invoice?.id)
+          .map(e => e.id)
+
+        console.log('[InvoiceFormModal] Auto-selecting linked entries:', linkedIds)
+        selectedTimeEntryIds.value = linkedIds
       } else {
-        // New invoice
-        if (!isInitializing.value) {
-          selectedTimeEntryIds.value = eligibleTimeEntries.value.map((e) => e.id)
-        }
+        // New invoice: select all eligible entries by default
+        selectedTimeEntryIds.value = eligibleTimeEntries.value.map((e) => e.id)
+        console.log('[InvoiceFormModal] New invoice, selecting all:', selectedTimeEntryIds.value)
       }
     } catch {
       timeEntries.value = []
@@ -301,10 +301,19 @@ watch(
       .filter((e) => selectedSet.has(e.id))
       .reduce((sum, e) => sum + e.durationSeconds, 0)
 
+    console.log('[InvoiceFormModal] Calculating totals:')
+    console.log('  - selectedTimeEntryIds:', selectedTimeEntryIds.value)
+    console.log('  - eligibleTimeEntries:', eligibleTimeEntries.value)
+    console.log('  - totalSeconds:', totalSeconds)
+    console.log('  - selectedProjectRate:', selectedProjectRate.value)
+
     // If initialization hasn't happened or projects not loaded, projectRate might be 0.
     // Calculations should still happen.
     const hours = totalSeconds / 3600
     const subtotal = hours * selectedProjectRate.value
+
+    console.log('  - hours:', hours)
+    console.log('  - subtotal:', subtotal)
 
     // We update form values. 
     // IMPORTANT: form.setFieldValue triggers validation.
@@ -318,6 +327,27 @@ watch(
   { deep: true }
 )
 
+// Also watch Project Rate change -> recalculate totals
+watch(
+  () => selectedProjectRate.value,
+  () => {
+    const selectedSet = new Set(selectedTimeEntryIds.value)
+    const totalSeconds = eligibleTimeEntries.value
+      .filter((e) => selectedSet.has(e.id))
+      .reduce((sum, e) => sum + e.durationSeconds, 0)
+
+    const hours = totalSeconds / 3600
+    const subtotal = hours * selectedProjectRate.value
+
+    form.setFieldValue('subtotal', subtotal)
+
+    const taxRate = form.values.taxRate || 0
+    const taxAmount = subtotal * taxRate
+    form.setFieldValue('taxAmount', taxAmount)
+    form.setFieldValue('total', subtotal + taxAmount)
+  }
+)
+
 // Also watch Tax Rate change
 watch(
   () => form.values.taxRate,
@@ -329,6 +359,7 @@ watch(
   }
 )
 
+// Initialize form based on invoice prop (runs once on component mount due to v-if)
 watch(() => props.invoice, async (newInvoice) => {
   if (newInvoice) {
     isInitializing.value = true
@@ -338,46 +369,41 @@ watch(() => props.invoice, async (newInvoice) => {
         number: newInvoice.number,
         issueDate: newInvoice.issueDate,
         dueDate: newInvoice.dueDate || defaultDueDateFromIssueDate(newInvoice.issueDate),
-        // items: newInvoice.items.map(i => ({ ...i })), // Items are manual items, here we mainly use time entries?
-        // Current logic doesn't expose manual items editing in this modal (it was NGrid Row 2?).
-        // Wait, original template didn't show items list for editing? 
-        // Original code had `items: []` in creation, and `items: newInvoice.items` in edit.
-        // But NO UI to edit manual items. Just Time Entries.
-        // So we keep it that way.
         subtotal: newInvoice.subtotal,
         taxRate: newInvoice.taxRate,
         taxAmount: newInvoice.taxAmount,
         total: newInvoice.total,
         status: coerceInvoiceStatus(newInvoice.status),
+        items: newInvoice.items || [],
       })
 
       // Load projects for the client
       if (newInvoice.clientId) {
-        await loadProjects(newInvoice.clientId)
+        await loadProjects(Number(newInvoice.clientId))
       }
 
-      // Set project ID if available
+      // Set project ID and project rate if available
       const inv = newInvoice as any
+      console.log('[InvoiceFormModal] Initializing invoice:', newInvoice)
+      console.log('[InvoiceFormModal] Invoice projectId:', inv.projectId)
+      console.log('[InvoiceFormModal] Loaded projects:', projectsData.value)
+
       if (inv.projectId) {
         selectedProjectId.value = inv.projectId
+        // Also set the project rate from loaded projects
+        const project = projectsData.value.find(p => p.id === inv.projectId)
+
+        if (project) {
+          selectedProjectRate.value = project.hourlyRate
+        }
       } else {
+
         selectedProjectId.value = null
+        selectedProjectRate.value = 0
       }
-
-      // Set selected time entries (if not done by project watcher?)
-      // We don't have list of entry IDs in Invoice object directly typically unless fetched?
-      // But we will fetch time entries via `loadProjects` -> then user sets project.
-      // Wait, we need to know which entries are part of this invoice.
-      // `eligibleTimeEntries` filters by `invoiceId === props.invoice.id`.
-      // So once we load time entries for the project, we can just select all that match this invoice.
-      // This logic is in the Project watcher.
-
     } finally {
       setTimeout(() => {
         isInitializing.value = false
-        // Trigger calculation once to ensure?
-        // Or trigger project watcher by setting project ID?
-        // Project ID was set above.
       }, 0)
     }
   } else {
@@ -425,7 +451,11 @@ function handleUpdateShow(value: boolean) {
 }
 
 const onSubmit = form.handleSubmit((values) => {
+  console.log('[InvoiceFormModal] Form submitted with values:', values)
+  console.log('[InvoiceFormModal] selectedTimeEntryIds:', selectedTimeEntryIds.value)
+
   if (isEditMode.value && props.invoice) {
+    console.log('[InvoiceFormModal] Emitting update event')
     emit('update', {
       input: dto.UpdateInvoiceInput.createFrom({
         id: props.invoice.id,
@@ -464,20 +494,17 @@ const onSubmit = form.handleSubmit((values) => {
     return
   }
 
+
   emit('create', {
     input: dto.CreateInvoiceInput.createFrom({
       clientId: values.clientId,
       number: values.number,
       issueDate: values.issueDate,
       dueDate: values.dueDate,
-      subtotal: 0, // Recalculated by backend or we pass it? 
-      // We pass 0 and let backend or just pass values?
-      // Original code passed 0 for create?
-      // "subtotal: 0"
-      // Yes.
+      subtotal: values.subtotal || 0,
       taxRate: values.taxRate,
-      taxAmount: 0,
-      total: 0,
+      taxAmount: values.taxAmount || 0,
+      total: values.total || 0,
       status: values.status,
       items: []
     }),
@@ -487,11 +514,13 @@ const onSubmit = form.handleSubmit((values) => {
 })
 
 function toggleSelection(id: number, checked: boolean | string) {
+  console.log('[InvoiceFormModal] toggleSelection called:', { id, checked })
   if (checked === true) {
     selectedTimeEntryIds.value = [...selectedTimeEntryIds.value, id]
   } else {
     selectedTimeEntryIds.value = selectedTimeEntryIds.value.filter(existingId => existingId !== id)
   }
+  console.log('[InvoiceFormModal] selectedTimeEntryIds now:', selectedTimeEntryIds.value)
 }
 
 function toggleAll(checked: boolean | string) {
@@ -508,7 +537,7 @@ const allSelected = computed(() => {
 </script>
 
 <template>
-  <Dialog :open="show" @update:open="handleUpdateShow">
+  <Dialog :open="show ?? true" @update:open="handleUpdateShow">
     <DialogContent class="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{ invoice ? t('invoices.form.editTitle') : t('invoices.form.newTitle') }}</DialogTitle>
@@ -537,24 +566,24 @@ const allSelected = computed(() => {
             </FormItem>
           </FormField>
 
-          <!-- Project -->
-          <FormItem>
-            <FormLabel>{{ t('invoices.form.project') }}</FormLabel>
+          <!-- Project (not a form field, just a local state selector) -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              {{ t('invoices.form.project') }}
+            </label>
             <Select :model-value="selectedProjectId?.toString()"
               @update:model-value="(v) => selectedProjectId = Number(v)"
               :disabled="!form.values.clientId || projectsLoading">
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue :placeholder="t('invoices.form.selectProject')" />
-                </SelectTrigger>
-              </FormControl>
+              <SelectTrigger>
+                <SelectValue :placeholder="t('invoices.form.selectProject')" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="p in projectsData" :key="p.id" :value="p.id.toString()">
                   {{ p.name }}
                 </SelectItem>
               </SelectContent>
             </Select>
-          </FormItem>
+          </div>
 
           <!-- Status -->
           <FormField v-slot="{ componentField }" name="status">
@@ -672,7 +701,7 @@ const allSelected = computed(() => {
                 <template v-else>
                   <TableRow v-for="entry in eligibleTimeEntries" :key="entry.id">
                     <TableCell>
-                      <Checkbox :checked="selectedTimeEntryIds.includes(entry.id)"
+                      <Checkbox :checked="isSelected(entry.id)"
                         @update:checked="(value: boolean) => toggleSelection(entry.id, value)" />
                     </TableCell>
                     <TableCell>{{ entry.date }}</TableCell>
@@ -707,7 +736,7 @@ const allSelected = computed(() => {
             <div class="flex items-center gap-4">
               <span class="text-muted-foreground">{{ t('invoices.form.taxAmount') }}</span>
               <span class="font-medium min-w-[80px] text-right">${{ form.values.taxAmount?.toFixed(2) || '0.00'
-              }}</span>
+                }}</span>
             </div>
           </div>
 

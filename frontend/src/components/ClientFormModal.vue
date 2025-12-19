@@ -34,7 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface Props {
-  show: boolean
+  show?: boolean
   client?: Client | null
 }
 
@@ -72,7 +72,7 @@ const statusOptions = [
   { label: t('clients.status.inactive'), value: 'inactive' }
 ]
 
-// Watch for client changes to populate form
+// Initialize form based on client prop (runs once on component mount due to v-if)
 watch(() => props.client, (newClient) => {
   if (newClient) {
     form.setValues({
@@ -118,7 +118,7 @@ const onSubmit = form.handleSubmit((values) => {
 </script>
 
 <template>
-  <Dialog :open="show" @update:open="handleUpdateShow">
+  <Dialog :open="show ?? true" @update:open="handleUpdateShow">
     <DialogContent class="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle>{{ client ? t('clients.editClient') : t('clients.newClient') }}</DialogTitle>

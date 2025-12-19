@@ -284,6 +284,13 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 			log.Println("SendEmail: resend send failed:", err)
 			return fmt.Errorf("resend failed: %v", err)
 		}
+		// Auto-update status to 'sent' if currently 'draft'
+		if invoice.Status == "draft" {
+			if err := s.UpdateStatus(userID, invoiceID, "sent"); err != nil {
+				log.Println("SendEmail: failed to update status after resend:", err)
+				// Don't return error - email was sent successfully
+			}
+		}
 		return nil
 	}
 
@@ -326,6 +333,13 @@ func (s *InvoiceService) SendEmail(userID int, invoiceID int) error {
 		if err := s.sendViaSMTP(emailSettings, client.Email, subject, body, pdfBytes, invoice.Number); err != nil {
 			log.Println("SendEmail: SMTP send failed:", err)
 			return fmt.Errorf("smtp failed: %w", err)
+		}
+		// Auto-update status to 'sent' if currently 'draft'
+		if invoice.Status == "draft" {
+			if err := s.UpdateStatus(userID, invoiceID, "sent"); err != nil {
+				log.Println("SendEmail: failed to update status after smtp:", err)
+				// Don't return error - email was sent successfully
+			}
 		}
 		return nil
 	}

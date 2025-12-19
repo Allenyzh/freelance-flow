@@ -73,10 +73,13 @@ function handleEdit() {
 
 async function handleSubmitProject(projectData: Omit<Project, 'id'> | Project) {
     try {
-        if ('id' in projectData) {
-            await projectStore.updateProject(projectData)
+        // Check if id exists AND is a valid number (not undefined/null/0)
+        const isUpdate = 'id' in projectData && typeof projectData.id === 'number' && projectData.id > 0
+        if (isUpdate) {
+            await projectStore.updateProject(projectData as Project)
             toast.success(t('projects.updateSuccess'))
         }
+        // Note: ProjectDetail only handles updates, not creates
     } catch (error) {
         toast.error(t('projects.saveError'))
     }
@@ -103,8 +106,8 @@ async function handleSubmitProject(projectData: Omit<Project, 'id'> | Project) {
                 </nav>
             </div>
 
-            <ProjectFormModal v-model:show="showModal" :project="project" :clients="clients"
-                @submit="handleSubmitProject" />
+            <ProjectFormModal v-if="showModal" :show="showModal" :project="project" :clients="clients"
+                @submit="handleSubmitProject" @update:show="showModal = $event" />
 
             <div class="flex flex-col gap-4 flex-1 min-h-0">
                 <!-- Project Info Card -->

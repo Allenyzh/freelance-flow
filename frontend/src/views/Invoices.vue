@@ -144,6 +144,8 @@ async function handleSend(invoice: EnrichedInvoice) {
   try {
     sendLoading.value = true
     await invoiceStore.sendEmail(invoice.id)
+    // Refresh invoices to get updated status (backend may have changed it)
+    await invoiceStore.fetchInvoices()
     toast.success(t('invoices.sendSuccess'))
   } catch (e: any) {
     if (e && typeof e === 'string') {
@@ -235,8 +237,8 @@ function formatCurrency(value: number) {
       </Button>
     </div>
 
-    <InvoiceFormModal v-model:show="showModal" :invoice="editingInvoice" :clients="clients"
-      @create="handleCreateInvoiceFromEntries" @update="handleUpdateInvoice" />
+    <InvoiceFormModal v-if="showModal" :show="showModal" :invoice="editingInvoice" :clients="clients"
+      @create="handleCreateInvoiceFromEntries" @update="handleUpdateInvoice" @update:show="showModal = $event" />
 
     <!-- Stats Grid -->
     <div class="shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4">

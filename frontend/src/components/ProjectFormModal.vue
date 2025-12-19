@@ -45,7 +45,7 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 
 interface Props {
-  show: boolean
+  show?: boolean
   project?: Project | null
   clients: Client[]
   initialClientId?: number | null
@@ -121,6 +121,7 @@ const dateValue = computed({
   }
 })
 
+// Initialize form based on project prop (runs once on component mount due to v-if)
 watch(() => props.project, (newProject) => {
   if (newProject) {
     form.setValues({
@@ -176,7 +177,7 @@ const onSubmit = form.handleSubmit((values) => {
 </script>
 
 <template>
-  <Dialog :open="show" @update:open="handleUpdateShow">
+  <Dialog :open="show ?? true" @update:open="handleUpdateShow">
     <DialogContent class="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle>{{ project ? t('projects.editProject') : t('projects.newProject') }}</DialogTitle>

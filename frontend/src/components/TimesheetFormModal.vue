@@ -45,7 +45,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface Props {
-  show: boolean
+  show?: boolean
   entry?: TimeEntry | null
   projects: Project[]
 }
@@ -102,37 +102,17 @@ const dateValue = computed({
 // Billable state (not in schema but needed for form)
 const billable = ref(true)
 
-// Watch for entry changes to populate form
+// Initialize form based on entry prop (runs once on component mount due to v-if)
 watch(() => props.entry, (newEntry) => {
   if (newEntry) {
     form.setValues({
       projectId: newEntry.projectId,
-      // invoiceId: newEntry.invoiceId || 0, // Schema doesn't strictly need invoiceId for editing unless we use it?
-      // timeEntrySchema doesn't have invoiceId at top level usually? 
-      // Checked schema: `id`, `projectId`, `date`, `startTime`, `endTime`, `durationSeconds`, `description`, `invoiced`.
-      // It DOES NOT show `invoiceId` in the file I read (Step 507).
-      // So I won't set it in the form values for validation, but we can preserve it if needed.
-      // Actually `TimeEntry` type has it. But schema is what we validate against.
-      // If we don't put it in form, it won't be in `values`.
-      // But we emit the full object.
-      // Let's assume validation schema limits what's in `values`.
-      // We can add it to the submit payload manually if it's not in the form.
-
       date: newEntry.date,
       startTime: newEntry.startTime || undefined,
       endTime: newEntry.endTime || undefined,
       durationSeconds: newEntry.durationSeconds,
       description: newEntry.description,
       invoiced: newEntry.invoiced,
-      // Billable is missing in schema?
-      // Step 507 schema: id, projectId, date, startTime, endTime, durationSeconds, description, invoiced.
-      // NO `billable`.
-      // But `TimeEntry` interface probably has `billable`.
-      // I should add `billable` to the form handling even if schema doesn't validate it (if extended) or just add it to payload.
-      // I'll add a manual ref for billable if it's not in schema, OR assume user might have updated schema locally but I read it and it wasn't there.
-      // To be safe, I'll use a ref for billable or just `invoiced` as proxy? 
-      // Original form had billable checkbox.
-      // I will add a local ref for `billable` synced with props/submit.
     })
     billable.value = newEntry.billable
   } else {
@@ -187,7 +167,7 @@ const onSubmit = form.handleSubmit((values) => {
 </script>
 
 <template>
-  <Dialog :open="show" @update:open="handleUpdateShow">
+  <Dialog :open="show ?? true" @update:open="handleUpdateShow">
     <DialogContent class="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle>{{ entry ? t('timesheet.form.editTitle') : t('timesheet.form.createTitle') }}</DialogTitle>

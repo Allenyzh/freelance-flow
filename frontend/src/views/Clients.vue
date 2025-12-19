@@ -70,11 +70,15 @@ async function handleDeleteClient() {
 
 async function handleSubmitClient(client: Omit<Client, 'id'> | Client) {
   try {
-    if ('id' in client) {
-      await clientStore.updateClient(client)
+    // Check if id exists AND is a valid number (not undefined/null/0)
+    const isUpdate = 'id' in client && typeof client.id === 'number' && client.id > 0
+    if (isUpdate) {
+      await clientStore.updateClient(client as Client)
       toast.success(t('clients.updateSuccess'))
     } else {
-      await clientStore.createClient(client)
+      // Remove id property if it exists but is invalid
+      const { id, ...createData } = client as Client
+      await clientStore.createClient(createData)
       toast.success(t('clients.createSuccess'))
     }
   } catch (error) {
@@ -253,8 +257,8 @@ const columns: ColumnDef<TreeRow>[] = [
     </div>
 
     <!-- Client Form Modal -->
-    <ClientFormModal v-model:show="showModal" :edit-client="editingClient" :grid-layout="true"
-      @submit="handleSubmitClient" />
+    <ClientFormModal v-if="showModal" :show="showModal" :client="editingClient" @submit="handleSubmitClient"
+      @update:show="showModal = $event" />
 
     <!-- Delete Confirmation Dialog -->
     <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
